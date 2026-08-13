@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Employee{
+  id Int @id @default(autoincrement())
+  name String
+  department String
+  cases Case[]
+}
+
+model Violation{
+  id Int @id @default(autoincrement())
+  name String @unique
+  rules Rule[]
+  cases Case[]
+}
+
+enum Action{
+    FIRST_WARNING
+    FINAL_WRITTEN_WARNING
+    SUSPENSION_3_DAYS
+    SUSPENSION_5_DAYS
+    DISMISSAL
+}
+
+model Rule{
+  id Int @id@default(autoincrement())
+  violation Violation @relation(fields:[violationId], references:[id])
+  violationId Int
+  offenseNumber Int
+  action Action
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  EMPLOYEE_NOTIFIED
+  ACTION_IN_PROGRESS
+  COMPLETED
+  CLOSED
+}
+
+model Case {
+  id            Int        @id @default(autoincrement())
+  employee      Employee   @relation(fields: [employeeId], references: [id])
+  employeeId    Int
+  violation     Violation  @relation(fields: [violationId], references: [id])
+  violationId   Int
+  offenseNumber Int
+  action        Action
+  status        CaseStatus @default(DRAFT)
+  suspensionStartDate DateTime?
+  suspensionDays      Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  events CaseEvent[]
+}
+
+model CaseEvent {
+  id        Int      @id @default(autoincrement())
+  case      Case     @relation(fields: [caseId], references: [id])
+  caseId    Int
+  actor     String
+  message   String
+  createdAt DateTime @default(now())
+}
