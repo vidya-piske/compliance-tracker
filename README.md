@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Corrective Action Tracker
 
-## Getting Started
+An HR corrective-action (progressive-discipline) tracker. When an employee breaks a company rule, a manager logs the incident and the app automatically determines the correct corrective action from the rulebook — based on **which** violation it was and **how many times** that employee has committed it — then tracks the case through HR review to closure.
 
-First, run the development server:
+## Features
+
+- **Rules engine** — deterministic lookup: `violation + offense number → corrective action` (a 5-level ladder: First Warning → Final Written Warning → 3-day Suspension → 5-day Suspension → Dismissal). The action is decided by the rulebook, never guessed.
+- **Manager dashboard** — a live cases table (real data), coloured status badges, and summary stat counts.
+- **Log an incident** — pick an employee + violation and see the recommended action compute live from the rules engine. Save as a draft (reopenable and pre-filled) or submit for HR review.
+- **Action ladder** — a visual of the five corrective-action levels showing where an employee currently sits and why.
+- **HR review** — approve or reject the cases managers submit.
+
+## Tech stack
+
+- **Next.js** (App Router) + **TypeScript**
+- **Tailwind CSS**
+- **PostgreSQL** (hosted on Neon), accessed with raw SQL via **node-postgres (`pg`)**
+- **Server Components** for data fetching + **Server Actions** for writes
+
+## Database
+
+- Schema: [`db/schema.sql`](db/schema.sql)
+- Seed data: [`db/seed.sql`](db/seed.sql)
+
+Tables: `employees`, `violations`, `rules` (the rulebook), `cases`, `case_events` (audit trail).
+
+## Getting started
 
 ```bash
+npm install
+# create .env with your Neon connection string:
+# DATABASE_URL="postgresql://..."
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Roles
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Manager (build cases), HR (approve/reject), Employee (acknowledge — planned), Admin (manage the rulebook — planned).
