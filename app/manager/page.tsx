@@ -1,15 +1,7 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
 
-function StatCard({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note: string;
-}) {
+function StatCard({ label, value, note }: { label: string; value: string; note: string }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5">
       <p className="text-sm text-gray-500">{label}</p>
@@ -40,115 +32,68 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function ManagerDashboard() {
-  const cases = await query(
-    `
-  SELECT cases.id,
-         employees.name AS employee_name,
-         employees.department,
-         violations.name AS violation_name,
-         cases.offense_number,
-         cases.action,
-         cases.status
-  FROM cases
-  JOIN employees ON cases.employee_id = employees.id
-  JOIN violations ON cases.violation_id = violations.id
-  ORDER BY cases.id DESC
-  `,
-  );
+  const cases = await query(`
+    SELECT cases.id,
+           employees.name AS employee_name,
+           employees.department,
+           violations.name AS violation_name,
+           cases.offense_number,
+           cases.action,
+           cases.status
+    FROM cases
+    JOIN employees ON cases.employee_id = employees.id
+    JOIN violations ON cases.violation_id = violations.id
+    ORDER BY cases.id DESC
+  `);
+
   return (
-    <div className="flex min-h-screen">
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col">
-        <h2 className="font-bold text-lg mb-8">Corrective Action Tracker</h2>
-
-        <nav className="flex flex-col gap-1 text-sm">
-          <nav className="flex flex-col gap-1 text-sm">
-            {/* Active — blue dot */}
-            <Link
-              href="/manager"
-              className="flex items-center gap-4 px-3 py-2 bg-gray-100 font-medium text-gray-900"
-            >
-              <span className="w-2 h-2 rounded-[2px] bg-[#2D5BD6]"></span>
-              My cases
-            </Link>
-
-            {/* Inactive — grey dot */}
-            <Link
-              href="/manager/new"
-              className="flex items-center gap-4 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-50"
-            >
-              <span className="w-2 h-2 rounded-[2px] bg-gray-300"></span>
-              New incident
-            </Link>
-
-            <Link
-              href="/manager/ladder"
-              className="flex items-center gap-4 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-50"
-            >
-              <span className="w-2 h-2 rounded-[2px] bg-gray-300"></span>
-              Action ladder
-            </Link>
-          </nav>
-        </nav>
-
-        {/* pushed to the bottom */}
-        <div className="mt-auto">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-900">
-            ← Switch role
-          </Link>
+    <main className="flex-1 p-12 bg-[#F5F6F8] min-h-screen">
+      {/* Header row: title + New incident button */}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-gray-400 uppercase tracking-wide">Shift Manager</p>
+          <h1 className="text-3xl font-bold text-gray-900">Cases</h1>
+          <p className="text-gray-500">Every open and closed corrective action.</p>
         </div>
-      </aside>
+        <Link href="/manager/new" className="bg-[#2D5BD6] text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition">
+          New incident
+        </Link>
+      </div>
 
-      {/* SIDEBAR */}
-      <main className="flex-1 p-12 bg-[#F5F6F8]">
-        <p className="text-sm text-gray-400 uppercase tracking-wide">
-          Shift Manager
-        </p>
-        <h1 className="text-3xl font-bold text-gray-900">Cases</h1>
-        <p className="text-gray-500">
-          Every open and closed corrective action.
-        </p>
-        {/* stat cards use StatCard */}
-        <div className="grid grid-cols-4 gap-4 mt-8">
-          <StatCard label="Pending review" value="2" note="2 over 48h SLA" />
-          <StatCard label="Approved" value="3" note="awaiting completion" />
-          <StatCard label="Closed this month" value="1" note="of 9 opened" />
-          <StatCard
-            label="At level 4 or 5"
-            value="1"
-            note="escalation review due"
-          />
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl mt-8 p-6">
-          <h2 className="font-bold text-lg mb-4">Cases you logged</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-400 border-b border-gray-200">
-                <th className="pb-3">Employee</th>
-                <th className="pb-3">Violation</th>
-                <th className="pb-3">Offense</th>
-                <th className="pb-3">Action</th>
-                <th className="pb-3">Status</th>
+      {/* Stat cards */}
+      <div className="grid grid-cols-4 gap-4 mt-8">
+        <StatCard label="Pending review" value="2" note="2 over 48h SLA" />
+        <StatCard label="Approved" value="3" note="awaiting completion" />
+        <StatCard label="Closed this month" value="1" note="of 9 opened" />
+        <StatCard label="At level 4 or 5" value="1" note="escalation review due" />
+      </div>
+
+      {/* Cases table */}
+      <div className="bg-white border border-gray-200 rounded-xl mt-8 p-6">
+        <h2 className="font-bold text-lg mb-4">Cases you logged</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-400 border-b border-gray-200">
+              <th className="pb-3">Employee</th>
+              <th className="pb-3">Violation</th>
+              <th className="pb-3">Offense</th>
+              <th className="pb-3">Action</th>
+              <th className="pb-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cases.map((c) => (
+              <tr key={c.id} className="border-b border-gray-100">
+                <td className="py-3 font-medium text-gray-900">{c.employee_name}</td>
+                <td className="py-3 text-gray-600">{c.violation_name}</td>
+                <td className="py-3 text-gray-600">{c.offense_number}</td>
+                <td className="py-3 text-gray-600">{c.action.replaceAll("_", " ")}</td>
+                <td className="py-3"><StatusBadge status={c.status} /></td>
               </tr>
-            </thead>
-            <tbody>
-              {cases.map((c) => (
-                <tr key={c.id} className="border-b border-gray-100">
-                  <td className="py-3 font-medium text-gray-900">
-                    {c.employee_name}
-                  </td>
-                  <td className="py-3 text-gray-600">{c.violation_name}</td>
-                  <td className="py-3 text-gray-600">{c.offense_number}</td>
-                  <td className="py-3 text-gray-600">{c.action.replaceAll("_", " ")}</td>
-                  <td className="py-3">
-                    <StatusBadge status={c.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </main>
   );
 }
