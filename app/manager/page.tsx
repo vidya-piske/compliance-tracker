@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
 
-function StatCard({ label, value, note }: { label: string; value: string; note: string }) {
+function StatCard({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note: string;
+}) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5">
       <p className="text-sm text-gray-500">{label}</p>
@@ -46,26 +54,55 @@ export default async function ManagerDashboard() {
     ORDER BY cases.id DESC
   `);
 
+  const stats = await query(`
+  SELECT
+    COUNT(*) FILTER (WHERE status = 'SUBMITTED')     AS pending,
+    COUNT(*) FILTER (WHERE status = 'APPROVED')      AS approved,
+    COUNT(*) FILTER (WHERE status = 'CLOSED')        AS closed,
+    COUNT(*) FILTER (WHERE offense_number >= 4)      AS high_level
+  FROM cases
+`);
+  const s = stats[0];
+
   return (
     <main className="flex-1 p-12 bg-[#F5F6F8] min-h-screen">
       {/* Header row: title + New incident button */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-400 uppercase tracking-wide">Shift Manager</p>
+          <p className="text-sm text-gray-400 uppercase tracking-wide">
+            Shift Manager
+          </p>
           <h1 className="text-3xl font-bold text-gray-900">Cases</h1>
-          <p className="text-gray-500">Every open and closed corrective action.</p>
+          <p className="text-gray-500">
+            Every open and closed corrective action.
+          </p>
         </div>
-        <Link href="/manager/new" className="bg-[#2D5BD6] text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition">
+        <Link
+          href="/manager/new"
+          className="bg-[#2D5BD6] text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
+        >
           New incident
         </Link>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-4 mt-8">
-        <StatCard label="Pending review" value="2" note="2 over 48h SLA" />
-        <StatCard label="Approved" value="3" note="awaiting completion" />
-        <StatCard label="Closed this month" value="1" note="of 9 opened" />
-        <StatCard label="At level 4 or 5" value="1" note="escalation review due" />
+        <StatCard
+          label="Pending review"
+          value={s.pending}
+          note="awaiting HR review"
+        />
+        <StatCard
+          label="Approved"
+          value={s.approved}
+          note="awaiting completion"
+        />
+        <StatCard label="Closed" value={s.closed} note="fully resolved" />
+        <StatCard
+          label="At level 4 or 5"
+          value={s.high_level}
+          note="escalation review"
+        />
       </div>
 
       {/* Cases table */}
@@ -84,11 +121,17 @@ export default async function ManagerDashboard() {
           <tbody>
             {cases.map((c) => (
               <tr key={c.id} className="border-b border-gray-100">
-                <td className="py-3 font-medium text-gray-900">{c.employee_name}</td>
+                <td className="py-3 font-medium text-gray-900">
+                  {c.employee_name}
+                </td>
                 <td className="py-3 text-gray-600">{c.violation_name}</td>
                 <td className="py-3 text-gray-600">{c.offense_number}</td>
-                <td className="py-3 text-gray-600">{c.action.replaceAll("_", " ")}</td>
-                <td className="py-3"><StatusBadge status={c.status} /></td>
+                <td className="py-3 text-gray-600">
+                  {c.action.replaceAll("_", " ")}
+                </td>
+                <td className="py-3">
+                  <StatusBadge status={c.status} />
+                </td>
               </tr>
             ))}
           </tbody>
