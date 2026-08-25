@@ -116,6 +116,7 @@ export default async function ManagerDashboard() {
               <th className="pb-3">Offense</th>
               <th className="pb-3">Action</th>
               <th className="pb-3">Status</th>
+              <th className="pb-3"></th>     
             </tr>
           </thead>
           <tbody>

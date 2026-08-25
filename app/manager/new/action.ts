@@ -21,13 +21,15 @@ export async function getRecommendation(employeeId: string, violationId: string)
 }
 
 export async function createCase(
-  data: { employeeId: string; violationId: string; offenseNumber: number; action: string },
+  data: { employeeId: string; violationId: string; offenseNumber: number; action: string; incidentDate: string;
+    description: string; },
   status: string,
 ) {
   await query(
-    `INSERT INTO cases (employee_id, violation_id, offense_number, action, status)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [data.employeeId, data.violationId, data.offenseNumber, data.action, status],
+    `INSERT INTO cases (employee_id, violation_id, offense_number, action, status, incident_date, description)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [data.employeeId, data.violationId, data.offenseNumber, data.action, status, data.incidentDate || null,
+      data.description,],
   );
   revalidatePath("/manager");
 }

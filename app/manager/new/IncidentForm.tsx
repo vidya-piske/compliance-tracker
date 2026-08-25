@@ -7,15 +7,17 @@ import { useRouter } from "next/navigation";
 export default function IncidentForm({
   employees,
   violations,
+  draft,
 }: {
   employees: any[];
   violations: any[];
+   draft: any;
 }) {
-  const [employeeId, setEmployeeId] = useState("");
-  const [violationId, setViolationId] = useState("");
-  const [recommendation, setRecommendation] = useState<{
-    offenseNumber: number;
-    action: string;
+ const [employeeId, setEmployeeId] = useState(draft?.employee_id?.toString() ?? "");
+  const [violationId, setViolationId] = useState(draft?.violation_id?.toString() ?? "");
+  const [incidentDate, setIncidentDate] = useState(draft?.incident_date ?? "");
+  const [description, setDescription] = useState(draft?.description ?? "");
+  const [recommendation, setRecommendation] = useState<{ offenseNumber: number; action: string;
   } | null>(null);
 
   // Run the rules engine whenever both selections are set
@@ -42,6 +44,8 @@ export default function IncidentForm({
         violationId,
         offenseNumber: recommendation.offenseNumber,
         action: recommendation.action,
+        incidentDate, 
+        description, 
       },
       status,
     );
@@ -86,6 +90,8 @@ export default function IncidentForm({
           </label>
           <input
             type="date"
+            value={incidentDate}
+            onChange={(e) => setIncidentDate(e.target.value)}
             className="w-full border border-gray-300 rounded-lg p-2 mb-4"
           />
 
@@ -95,6 +101,8 @@ export default function IncidentForm({
           <textarea
             rows={4}
             placeholder="Describe the incident..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             className="w-full border border-gray-300 rounded-lg p-2 mb-2"
           ></textarea>
           <p className="text-xs text-gray-400 mb-4">
@@ -105,6 +113,7 @@ export default function IncidentForm({
             <button
               type="button"
               onClick={() => handleSave("SUBMITTED")}
+              disabled={!recommendation}
               className="bg-[#2D5BD6] text-white px-4 py-2 rounded-lg font-medium cursor-pointer"
             >
               Submit for HR review
@@ -112,6 +121,7 @@ export default function IncidentForm({
             <button
               type="button"
               onClick={() => handleSave("DRAFT")}
+              disabled={!recommendation}
               className="border border-gray-300 px-4 py-2 rounded-lg font-medium cursor-pointer"
             >
               Save draft
