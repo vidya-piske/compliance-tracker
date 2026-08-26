@@ -116,14 +116,19 @@ export default async function ManagerDashboard() {
               <th className="pb-3">Offense</th>
               <th className="pb-3">Action</th>
               <th className="pb-3">Status</th>
-              <th className="pb-3"></th>     
+              <th className="pb-3"></th>
             </tr>
           </thead>
           <tbody>
             {cases.map((c) => (
               <tr key={c.id} className="border-b border-gray-100">
-                <td className="py-3 font-medium text-gray-900">
-                  {c.employee_name}
+                <td className="py-3 font-medium">
+                  <Link
+                    href={`/case/${c.id}`}
+                    className="text-[#2D5BD6] hover:underline"
+                  >
+                    {c.employee_name}
+                  </Link>
                 </td>
                 <td className="py-3 text-gray-600">{c.violation_name}</td>
                 <td className="py-3 text-gray-600">{c.offense_number}</td>
