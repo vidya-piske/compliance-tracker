@@ -10,7 +10,7 @@ export default async function HRLayout({ children }: { children: React.ReactNode
       <Sidebar
         navItems={[
           { label: "All cases", href: "/admin" },
-          { label: "Action ladder", href: "/ladder" },
+          { label: "Action ladder", href: "/admin/ladder" },
         ]}
         userName={user.name}
         userTitle={user.title}

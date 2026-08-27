@@ -27,23 +27,23 @@ export default async function RulebookPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-400 border-b border-gray-200">
-              <th className="pb-3">Violation</th>
-              <th className="pb-3">1st</th>
-              <th className="pb-3">2nd</th>
-              <th className="pb-3">3rd</th>
-              <th className="pb-3">4th</th>
-              <th className="pb-3">5th</th>
+              <th className="pb-3 pr-6">Violation</th>
+              <th className="pb-3 pr-6">1st</th>
+              <th className="pb-3 pr-6">2nd</th>
+              <th className="pb-3 pr-6">3rd</th>
+              <th className="pb-3 pr-6">4th</th>
+              <th className="pb-3 pr-6">5th</th>
             </tr>
           </thead>
           <tbody>
             {violations.map((v) => (
               <tr key={v.id} className="border-b border-gray-100">
-                <td className="py-3 font-medium text-gray-900">{v.name}</td>
-                <td className="py-3 text-gray-600">{actionFor(v.id, 1)}</td>
-                <td className="py-3 text-gray-600">{actionFor(v.id, 2)}</td>
-                <td className="py-3 text-gray-600">{actionFor(v.id, 3)}</td>
-                <td className="py-3 text-gray-600">{actionFor(v.id, 4)}</td>
-                <td className="py-3 text-gray-600">{actionFor(v.id, 5)}</td>
+                <td className="py-3 pr-6 font-medium text-gray-900">{v.name}</td>
+                <td className="py-3 pr-6 text-gray-600">{actionFor(v.id, 1)}</td>
+                <td className="py-3 pr-6 text-gray-600">{actionFor(v.id, 2)}</td>
+                <td className="py-3 pr-6 text-gray-600">{actionFor(v.id, 3)}</td>
+                <td className="py-3 pr-6 text-gray-600">{actionFor(v.id, 4)}</td>
+                <td className="py-3 pr-6 text-gray-600">{actionFor(v.id, 5)}</td>
               </tr>
             ))}
           </tbody>
