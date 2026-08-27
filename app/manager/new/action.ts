@@ -25,11 +25,19 @@ export async function createCase(
     description: string; },
   status: string,
 ) {
-  await query(
+  const rows = await query(
     `INSERT INTO cases (employee_id, violation_id, offense_number, action, status, incident_date, description)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
     [data.employeeId, data.violationId, data.offenseNumber, data.action, status, data.incidentDate || null,
       data.description,],
   );
+  const caseId = rows[0].id;
+
+  const message = status === "SUBMITTED" ? "Submitted for HR review" : "Draft created";
+  await query(
+    "INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)",
+    [caseId, "Manager", message],
+  );
+
   revalidatePath("/manager");
 }
