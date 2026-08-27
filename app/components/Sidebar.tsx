@@ -10,7 +10,7 @@ export default function Sidebar({
   userTitle: string;
 }) {
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col">
+   <aside className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col h-screen sticky top-0">
       <h2 className="font-bold text-lg mb-8">Corrective Action Tracker</h2>
 
       <nav className="flex flex-col gap-1 text-sm">

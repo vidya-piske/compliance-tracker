@@ -116,7 +116,7 @@ export default async function ManagerDashboard() {
               <th className="pb-3">Offense</th>
               <th className="pb-3">Action</th>
               <th className="pb-3">Status</th>
-              <th className="pb-3"></th>
+              <th className="pb-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -124,7 +124,7 @@ export default async function ManagerDashboard() {
               <tr key={c.id} className="border-b border-gray-100">
                 <td className="py-3 font-medium">
                   <Link
-                    href={`/case/${c.id}`}
+                    href={`/manager/case/${c.id}`}
                     className="text-[#2D5BD6] hover:underline"
                   >
                     {c.employee_name}
@@ -137,6 +137,23 @@ export default async function ManagerDashboard() {
                 </td>
                 <td className="py-3">
                   <StatusBadge status={c.status} />
+                </td>
+                <td className="py-3 text-right">
+                  {c.status === "DRAFT" ? (
+                    <Link
+                      href={`/manager/new?draft=${c.id}`}
+                      className="text-[#2D5BD6] hover:underline text-sm font-medium"
+                    >
+                      Continue
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/manager/case/${c.id}`}
+                      className="text-gray-400 hover:text-gray-700 text-sm"
+                    >
+                      View
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}
