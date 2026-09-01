@@ -171,6 +171,20 @@ app.get('/api/cases/:id', requireAuth, async (req, res) => {
   res.json({ case: foundCase, events });
 });
 
+app.get('/api/cases', requireAuth, async (req, res) => {
+  const cases = await query(
+    `SELECT cases.id, employees.name AS employee_name, violations.name AS violation_name,
+            cases.offense_number, cases.action, cases.status
+     FROM cases
+     JOIN employees   ON cases.employee_id  = employees.id
+     JOIN violations  ON cases.violation_id = violations.id
+     WHERE employees.manager_id = $1
+     ORDER BY cases.id DESC`,
+    [req.user.id]
+  );
+  res.json(cases);
+});
+
 app.post('/api/cases', requireAuth, async (req, res) => {
   try {
     const { employeeId, violationId, incidentDate, description, status } = req.body;
