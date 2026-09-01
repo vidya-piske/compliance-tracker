@@ -1,0 +1,256 @@
+const crypto = require("crypto");
+const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
+require("dotenv").config();
+
+const express = require("express");
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+const port = 4000;
+const { query } = require("./db");
+
+async function requireAuth(req, res, next) {
+  try {
+    const sessionId = req.cookies.session;
+    if (!sessionId) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+    const rows = await query(
+      `SELECT users.id, users.email, users.name, users.role
+       FROM sessions
+       JOIN users ON users.id = sessions.user_id
+       WHERE sessions.id = $1 AND sessions.expires_at > NOW()`,
+      [sessionId]
+    );
+    const user = rows[0];
+    if (!user) {
+      return res.status(401).json({ error: "Session invalid or expired" });
+    }
+    req.user = user;  
+    next();           
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+}
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.get("/api/employees", requireAuth, async (req, res) => {
+  const employees = await query("SELECT * FROM employees WHERE manager_id = $1", [req.user.id]);
+  res.json(employees);
+});
+
+app.post("/api/signup", async (req, res) => {
+  try {
+    const { email, password, name, role } = req.body;
+
+    if (!email || !password || !name || !role) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+
+    const rows = await query(
+      "INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id",
+      [email, password_hash, name, role],
+    );
+
+    res.status(201).json({ id: rows[0].id, email });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "Email already registered" });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    const rows = await query("SELECT * FROM users WHERE email = $1", [email]);
+    const user = rows[0];
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const sessionId = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await query(
+      "INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)",
+      [sessionId, user.id, expiresAt],
+    );
+    res.cookie("session", sessionId, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({ id: user.id, email: user.email, role: user.role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.post("/api/logout", async (req, res) => {
+  try {
+    const sessionId = req.cookies.session;
+    if (sessionId) {
+      await query("DELETE FROM sessions WHERE id=$1", [sessionId]);
+    }
+    res.clearCookie("session");
+    res.json({ message: "Logged out" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.get("/api/me", async (req, res) => {
+  try {
+    const sessionId = req.cookies.session;
+    if (!sessionId) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+    const rows = await query(
+      `SELECT users.id, users.email, users.name, users.role
+       FROM sessions
+       JOIN users ON users.id = sessions.user_id
+       WHERE sessions.id = $1 AND sessions.expires_at > NOW()`,
+      [sessionId],
+    );
+    const user = rows[0];
+    if (!user) {
+      return res.status(401).json({ error: "Session invalid or expired" });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.get('/api/cases/:id', requireAuth, async (req, res) => {
+  const { id } = req.params; 
+
+  const caseRows = await query(
+    `SELECT cases.id, employees.name AS employee_name, employees.department,
+            violations.name AS violation_name, cases.offense_number, cases.action,
+            cases.status, cases.description
+     FROM cases
+     JOIN employees  ON cases.employee_id  = employees.id
+     JOIN violations ON cases.violation_id = violations.id
+     WHERE cases.id = $1`,
+    [id]
+  );
+  const foundCase = caseRows[0];
+
+  if (!foundCase) {
+    return res.status(404).json({ error: "Case not found" });
+  }
+
+  const events = await query(
+    'SELECT actor, message, created_at FROM case_events WHERE case_id = $1 ORDER BY created_at',
+    [id]
+  );
+
+  res.json({ case: foundCase, events });
+});
+
+app.post('/api/cases', requireAuth, async (req, res) => {
+  try {
+    const { employeeId, violationId, incidentDate, description, status } = req.body;
+
+    if (!employeeId || !violationId) {
+      return res.status(400).json({ error: "employeeId and violationId are required" });
+    }
+
+    const countRows = await query(
+      'SELECT COUNT(*) FROM cases WHERE employee_id = $1 AND violation_id = $2',
+      [employeeId, violationId]
+    );
+    const offenseNumber = Number(countRows[0].count) + 1;
+
+    const ruleRows = await query(
+      'SELECT action FROM rules WHERE violation_id = $1 AND offense_number = $2',
+      [violationId, offenseNumber]
+    );
+    const action = ruleRows[0]?.action ?? 'DISMISSAL';
+
+    const rows = await query(
+      `INSERT INTO cases (employee_id, violation_id, offense_number, action, status, incident_date, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [employeeId, violationId, offenseNumber, action, status || 'SUBMITTED', incidentDate || null, description || null]
+    );
+    const caseId = rows[0].id;
+
+    await query(
+      'INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)',
+      [caseId, req.user.name, status === 'DRAFT' ? 'Draft saved' : 'Submitted for HR review']
+    );
+
+    res.status(201).json({ id: caseId, offenseNumber, action });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.patch('/api/cases/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: "status is required" });
+    }
+
+    const rows = await query(
+      'UPDATE cases SET status = $1 WHERE id = $2 RETURNING id',
+      [status, id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Case not found" });
+    }
+
+    await query(
+      'INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)',
+      [id, req.user.name, `Status changed to ${status}`]
+    );
+
+    res.json({ id: Number(id), status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.get('/api/rules', requireAuth, async (req, res) => {
+  const rules = await query(
+    `SELECT rules.id, rules.violation_id, violations.name AS violation_name,
+            rules.offense_number, rules.action
+     FROM rules
+     JOIN violations ON rules.violation_id = violations.id
+     ORDER BY rules.violation_id, rules.offense_number`
+  );
+  res.json(rules);
+});
+
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
