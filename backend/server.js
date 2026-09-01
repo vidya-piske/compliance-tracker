@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
+const cors = require('cors');
 
 const express = require("express");
 const app = express();
@@ -9,6 +10,11 @@ app.use(express.json());
 app.use(cookieParser());
 const port = 4000;
 const { query } = require("./db");
+
+app.use(cors({
+  origin: 'http://localhost:5173',  
+  credentials: true,                
+}));
 
 async function requireAuth(req, res, next) {
   try {
