@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
-const cors = require('cors');
+const cors = require("cors");
 
 const express = require("express");
 const app = express();
@@ -11,10 +11,12 @@ app.use(cookieParser());
 const port = 4000;
 const { query } = require("./db");
 
-app.use(cors({
-  origin: 'http://localhost:5173',  
-  credentials: true,                
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 async function requireAuth(req, res, next) {
   try {
@@ -27,14 +29,14 @@ async function requireAuth(req, res, next) {
        FROM sessions
        JOIN users ON users.id = sessions.user_id
        WHERE sessions.id = $1 AND sessions.expires_at > NOW()`,
-      [sessionId]
+      [sessionId],
     );
     const user = rows[0];
     if (!user) {
       return res.status(401).json({ error: "Session invalid or expired" });
     }
-    req.user = user;  
-    next();           
+    req.user = user;
+    next();
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });
@@ -46,7 +48,10 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/api/employees", requireAuth, async (req, res) => {
-  const employees = await query("SELECT * FROM employees WHERE manager_id = $1", [req.user.id]);
+  const employees = await query(
+    "SELECT * FROM employees WHERE manager_id = $1",
+    [req.user.id],
+  );
   res.json(employees);
 });
 
@@ -150,8 +155,8 @@ app.get("/api/me", async (req, res) => {
   }
 });
 
-app.get('/api/cases/:id', requireAuth, async (req, res) => {
-  const { id } = req.params; 
+app.get("/api/cases/:id", requireAuth, async (req, res) => {
+  const { id } = req.params;
 
   const caseRows = await query(
     `SELECT cases.id, employees.name AS employee_name, employees.department,
@@ -161,7 +166,7 @@ app.get('/api/cases/:id', requireAuth, async (req, res) => {
      JOIN employees  ON cases.employee_id  = employees.id
      JOIN violations ON cases.violation_id = violations.id
      WHERE cases.id = $1`,
-    [id]
+    [id],
   );
   const foundCase = caseRows[0];
 
@@ -170,14 +175,14 @@ app.get('/api/cases/:id', requireAuth, async (req, res) => {
   }
 
   const events = await query(
-    'SELECT actor, message, created_at FROM case_events WHERE case_id = $1 ORDER BY created_at',
-    [id]
+    "SELECT actor, message, created_at FROM case_events WHERE case_id = $1 ORDER BY created_at",
+    [id],
   );
 
   res.json({ case: foundCase, events });
 });
 
-app.get('/api/cases', requireAuth, async (req, res) => {
+app.get("/api/cases", requireAuth, async (req, res) => {
   const cases = await query(
     `SELECT cases.id, employees.name AS employee_name, violations.name AS violation_name,
             cases.offense_number, cases.action, cases.status
@@ -186,41 +191,56 @@ app.get('/api/cases', requireAuth, async (req, res) => {
      JOIN violations  ON cases.violation_id = violations.id
      WHERE employees.manager_id = $1
      ORDER BY cases.id DESC`,
-    [req.user.id]
+    [req.user.id],
   );
   res.json(cases);
 });
 
-app.post('/api/cases', requireAuth, async (req, res) => {
+app.post("/api/cases", requireAuth, async (req, res) => {
   try {
-    const { employeeId, violationId, incidentDate, description, status } = req.body;
+    const { employeeId, violationId, incidentDate, description, status } =
+      req.body;
 
     if (!employeeId || !violationId) {
-      return res.status(400).json({ error: "employeeId and violationId are required" });
+      return res
+        .status(400)
+        .json({ error: "employeeId and violationId are required" });
     }
 
     const countRows = await query(
-      'SELECT COUNT(*) FROM cases WHERE employee_id = $1 AND violation_id = $2',
-      [employeeId, violationId]
+      "SELECT COUNT(*) FROM cases WHERE employee_id = $1 AND violation_id = $2",
+      [employeeId, violationId],
     );
     const offenseNumber = Number(countRows[0].count) + 1;
 
     const ruleRows = await query(
-      'SELECT action FROM rules WHERE violation_id = $1 AND offense_number = $2',
-      [violationId, offenseNumber]
+      "SELECT action FROM rules WHERE violation_id = $1 AND offense_number = $2",
+      [violationId, offenseNumber],
     );
-    const action = ruleRows[0]?.action ?? 'DISMISSAL';
+    const action = ruleRows[0]?.action ?? "DISMISSAL";
 
     const rows = await query(
       `INSERT INTO cases (employee_id, violation_id, offense_number, action, status, incident_date, description)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [employeeId, violationId, offenseNumber, action, status || 'SUBMITTED', incidentDate || null, description || null]
+      [
+        employeeId,
+        violationId,
+        offenseNumber,
+        action,
+        status || "SUBMITTED",
+        incidentDate || null,
+        description || null,
+      ],
     );
     const caseId = rows[0].id;
 
     await query(
-      'INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)',
-      [caseId, req.user.name, status === 'DRAFT' ? 'Draft saved' : 'Submitted for HR review']
+      "INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)",
+      [
+        caseId,
+        req.user.name,
+        status === "DRAFT" ? "Draft saved" : "Submitted for HR review",
+      ],
     );
 
     res.status(201).json({ id: caseId, offenseNumber, action });
@@ -230,7 +250,7 @@ app.post('/api/cases', requireAuth, async (req, res) => {
   }
 });
 
-app.patch('/api/cases/:id', requireAuth, async (req, res) => {
+app.patch("/api/cases/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -240,8 +260,8 @@ app.patch('/api/cases/:id', requireAuth, async (req, res) => {
     }
 
     const rows = await query(
-      'UPDATE cases SET status = $1 WHERE id = $2 RETURNING id',
-      [status, id]
+      "UPDATE cases SET status = $1 WHERE id = $2 RETURNING id",
+      [status, id],
     );
 
     if (rows.length === 0) {
@@ -249,8 +269,8 @@ app.patch('/api/cases/:id', requireAuth, async (req, res) => {
     }
 
     await query(
-      'INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)',
-      [id, req.user.name, `Status changed to ${status}`]
+      "INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)",
+      [id, req.user.name, `Status changed to ${status}`],
     );
 
     res.json({ id: Number(id), status });
@@ -260,16 +280,83 @@ app.patch('/api/cases/:id', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/rules', requireAuth, async (req, res) => {
+app.get("/api/rules", requireAuth, async (req, res) => {
   const rules = await query(
     `SELECT rules.id, rules.violation_id, violations.name AS violation_name,
             rules.offense_number, rules.action
      FROM rules
      JOIN violations ON rules.violation_id = violations.id
-     ORDER BY rules.violation_id, rules.offense_number`
+     ORDER BY rules.violation_id, rules.offense_number`,
   );
   res.json(rules);
 });
+
+app.post("/api/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const rows = await query("SELECT id FROM users WHERE email=$1", [email]);
+    const user = rows[0];
+    if (!user) {
+      return res.json({
+        message: "If that email exists, a reset link has been sent.",
+      });
+    }
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 60 * 60 * 1000);
+
+    await query(
+      "UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3",
+      [token, expires, user.id],
+    );
+
+    const resetLink = `http://localhost:5173/reset-password?token=${token}`;
+    console.log("Password reset link:", resetLink);
+
+    res.json({
+      message: "If that email exists, a reset link has been sent.",
+      resetLink,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.post("/api/reset-password", async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res
+        .status(400)
+        .json({ error: "Token and new password are required" });
+    }
+    const rows = await query(
+      "SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()",
+      [token],
+    );
+    const user = rows[0];
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ error: "This reset link is invalid or has expired" });
+    }
+    const password_hash = await bcrypt.hash(password, 10);
+
+    await query(
+      "UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2",
+      [password_hash, user.id],
+    );
+    res.json({ message: "Password reset successfully. You can now log in." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
