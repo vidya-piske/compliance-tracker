@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import Dropdown from "../components/Dropdown";
+import SubmitButton from "../components/SubmitButton";
 
 const inputClass =
   "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition";
@@ -40,7 +41,10 @@ const Signup = () => {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Start tracking corrective actions in minutes.">
+    <AuthLayout
+      title="Create your account"
+      subtitle="Start tracking corrective actions in minutes."
+    >
       <form onSubmit={handleSignup} className="space-y-6">
         <div>
           <label className="block text-sm text-gray-300 mb-2">Full name</label>
@@ -95,18 +99,17 @@ const Signup = () => {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold hover:from-indigo-400 hover:to-fuchsia-400 transition shadow-lg shadow-indigo-500/30 disabled:opacity-60"
-        >
+        <SubmitButton loading={loading}>
           {loading ? "Creating account…" : "Create account"}
-        </button>
+        </SubmitButton>
       </form>
 
       <p className="text-center text-gray-400 text-sm mt-6">
         Already have an account?{" "}
-        <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium">
+        <Link
+          to="/login"
+          className="text-indigo-400 hover:text-indigo-300 font-medium"
+        >
           Sign in
         </Link>
       </p>

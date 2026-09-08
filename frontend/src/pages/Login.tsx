@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUser } from "../store/authSlice";
 import AuthLayout from "../components/AuthLayout";
+import SubmitButton from "../components/SubmitButton";
 
 const inputClass =
   "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition";
@@ -90,13 +91,9 @@ const Login = () => {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold hover:from-indigo-400 hover:to-fuchsia-400 transition shadow-lg shadow-indigo-500/30 disabled:opacity-60"
-        >
+        <SubmitButton loading={loading}>
           {loading ? "Signing in…" : "Sign in"}
-        </button>
+        </SubmitButton>
       </form>
 
       <p className="text-center text-gray-400 text-sm mt-5">

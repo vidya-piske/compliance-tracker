@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
+import SubmitButton from "../components/SubmitButton";
 
 const inputClass =
   "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     message: string;
     resetLink?: string;
@@ -14,13 +16,18 @@ const ForgotPassword = () => {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch("/api/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    setResult(data);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -74,7 +81,6 @@ const ForgotPassword = () => {
           </Link>
         </div>
       ) : (
-        /* Form state — before submitting */
         <>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -87,12 +93,9 @@ const ForgotPassword = () => {
                 className={inputClass}
               />
             </div>
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold hover:from-indigo-400 hover:to-fuchsia-400 transition"
-            >
-              Send reset link
-            </button>
+            <SubmitButton loading={loading}>
+              {loading ? "Sending…" : "Send reset link"}
+            </SubmitButton>
           </form>
 
           <p className="text-center text-gray-400 text-sm mt-6">
