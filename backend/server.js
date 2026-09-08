@@ -3,6 +3,8 @@ const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 const cors = require("cors");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const express = require("express");
 const app = express();
@@ -313,11 +315,23 @@ app.post("/api/forgot-password", async (req, res) => {
     );
 
     const resetLink = `http://localhost:5173/reset-password?token=${token}`;
-    console.log("Password reset link:", resetLink);
+
+    const { error } = await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: email,
+      subject: "Reset your password",
+      html: `<p>We received a request to reset your password.</p>
+             <p><a href="${resetLink}">Click here to reset it</a>. This link expires in 1 hour.</p>
+             <p>If you didn't request this, you can ignore this email.</p>`,
+    });
+
+    if (error) {
+      console.error("Resend error:", error);
+      return res.status(500).json({ error: "Could not send reset email" });
+    }
 
     res.json({
       message: "If that email exists, a reset link has been sent.",
-      resetLink,
     });
   } catch (err) {
     console.error(err);
@@ -356,7 +370,6 @@ app.post("/api/reset-password", async (req, res) => {
     res.status(500).json({ error: "Something went wrong" });
   }
 });
-
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

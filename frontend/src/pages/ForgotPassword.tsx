@@ -39,16 +39,21 @@ const ForgotPassword = () => {
               stroke="currentColor"
               strokeWidth={2}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-white">Reset link ready</h2>
+            <h2 className="text-lg font-semibold text-white">
+              Check your email
+            </h2>
             <p className="text-gray-400 text-sm mt-2">
-              {result.resetLink
-                ? "Email isn't set up in this demo, so use the link below to reset your password."
-                : result.message}
+              If an account exists for that email, we've sent a link to reset
+              your password.
             </p>
           </div>
 
