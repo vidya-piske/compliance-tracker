@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -10,7 +10,9 @@ const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardLayout = lazy(() => import("./components/DashboardLayout"));
+const CreateIncident = lazy(()=>import ("./pages/CreateIncident"));
+const RuleBook = lazy(()=>import("./pages/RuleBook"));
 
 function App() {
   const dispatch = useDispatch();
@@ -37,10 +39,14 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+                 <DashboardLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="/dashboard/create" replace/>}/>
+          <Route path="create" element={<CreateIncident/>}/>
+          <Route path="rules" element={<RuleBook/>}/>
+          </Route>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
