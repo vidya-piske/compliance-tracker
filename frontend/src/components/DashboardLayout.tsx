@@ -59,9 +59,14 @@ export default function DashboardLayout() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="hidden sm:block text-sm text-gray-400 truncate max-w-[220px]">
-            {user?.name || user?.email} · {user?.role}
-          </span>
+          <div className="hidden sm:flex items-center gap-2 min-w-0">
+            <span className="text-sm text-gray-300 truncate max-w-[160px]">
+              {user?.name || user?.email}
+            </span>
+            <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 capitalize">
+              {user?.role}
+            </span>
+          </div>
           <button
             onClick={handleLogout}
             disabled={loading}
@@ -127,9 +132,9 @@ export default function DashboardLayout() {
             Create incident
           </NavLink>
           <NavLink
-          to="/dashboard/cases"
-          className={navClass}
-          onClick={()=>setSidebarOpen(false)}
+            to="/dashboard/cases"
+            className={navClass}
+            onClick={() => setSidebarOpen(false)}
           >
             Cases
           </NavLink>

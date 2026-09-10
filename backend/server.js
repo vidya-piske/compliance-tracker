@@ -134,7 +134,7 @@ app.post("/api/login", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ id: user.id, email: user.email, role: user.role });
+    res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });
