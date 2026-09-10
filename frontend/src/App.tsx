@@ -11,8 +11,9 @@ const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const DashboardLayout = lazy(() => import("./components/DashboardLayout"));
-const CreateIncident = lazy(()=>import ("./pages/CreateIncident"));
-const RuleBook = lazy(()=>import("./pages/RuleBook"));
+const CreateIncident = lazy(() => import("./pages/CreateIncident"));
+const RuleBook = lazy(() => import("./pages/RuleBook"));
+const Employees = lazy(() => import("./pages/Employees"));
 
 function App() {
   const dispatch = useDispatch();
@@ -22,12 +23,12 @@ function App() {
     fetch("/api/me", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((user) => {
-        if (user) dispatch(setUser(user)); 
+        if (user) dispatch(setUser(user));
       })
-      .finally(() => setChecking(false)); 
+      .finally(() => setChecking(false));
   }, [dispatch]);
 
-   if (checking) return <Loader />;  
+  if (checking) return <Loader />;
 
   return (
     <Suspense fallback={<Loader />}>
@@ -39,14 +40,15 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-                 <DashboardLayout />
+              <DashboardLayout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard/create" replace/>}/>
-          <Route path="create" element={<CreateIncident/>}/>
-          <Route path="rules" element={<RuleBook/>}/>
-          </Route>
+          <Route index element={<Navigate to="/dashboard/create" replace />} />
+          <Route path="employees" element={<Employees />} />
+          <Route path="create" element={<CreateIncident />} />
+          <Route path="rules" element={<RuleBook />} />
+        </Route>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>

@@ -37,8 +37,18 @@ export default function DashboardLayout() {
             className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-white/10 transition"
             aria-label="Open menu"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           </button>
 
@@ -79,22 +89,48 @@ export default function DashboardLayout() {
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs uppercase tracking-wider text-gray-500 px-4">Menu</p>
+            <p className="text-xs uppercase tracking-wider text-gray-500 px-4">
+              Menu
+            </p>
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-1 rounded hover:bg-white/10 transition"
               aria-label="Close menu"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
-
-          <NavLink to="/dashboard/create" className={navClass} onClick={() => setSidebarOpen(false)}>
+          <NavLink
+            to="/dashboard/employees"
+            className={navClass}
+            onClick={() => setSidebarOpen(false)}
+          >
+            Employees
+          </NavLink>
+          <NavLink
+            to="/dashboard/create"
+            className={navClass}
+            onClick={() => setSidebarOpen(false)}
+          >
             Create incident
           </NavLink>
-          <NavLink to="/dashboard/rules" className={navClass} onClick={() => setSidebarOpen(false)}>
+          <NavLink
+            to="/dashboard/rules"
+            className={navClass}
+            onClick={() => setSidebarOpen(false)}
+          >
             Rule book
           </NavLink>
         </aside>

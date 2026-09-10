@@ -57,6 +57,28 @@ app.get("/api/employees", requireAuth, async (req, res) => {
   res.json(employees);
 });
 
+app.post("/api/employees", requireAuth, async (req, res) => {
+  try {
+    const { name, department } = req.body;
+
+    if (!name || !department) {
+      return res
+        .status(400)
+        .json({ error: "Name and department are required" });
+    }
+
+    const rows = await query(
+      "INSERT INTO employees (name, department, manager_id) VALUES ($1, $2, $3) RETURNING id, name, department",
+      [name, department, req.user.id],
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
 app.post("/api/signup", async (req, res) => {
   try {
     const { email, password, name, role } = req.body;
@@ -365,6 +387,58 @@ app.post("/api/reset-password", async (req, res) => {
       [password_hash, user.id],
     );
     res.json({ message: "Password reset successfully. You can now log in." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.delete("/api/employees/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const rows = await query(
+      "DELETE FROM employees WHERE id = $1 AND manager_id = $2 RETURNING id",
+      [id, req.user.id],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    res.json({ id: Number(id) });
+  } catch (err) {
+    if (err.code === "23503") {
+      return res
+        .status(409)
+        .json({ error: "This employee has cases and can't be deleted" });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.patch("/api/employees/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, department } = req.body;
+
+    if (!name || !department) {
+      return res
+        .status(400)
+        .json({ error: "Name and department are required" });
+    }
+
+    const rows = await query(
+      "UPDATE employees SET name = $1, department = $2 WHERE id = $3 AND manager_id = $4 RETURNING id, name, department",
+      [name, department, id, req.user.id],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });
