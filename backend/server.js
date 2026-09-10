@@ -59,17 +59,17 @@ app.get("/api/employees", requireAuth, async (req, res) => {
 
 app.post("/api/employees", requireAuth, async (req, res) => {
   try {
-    const { name, department } = req.body;
+    const { name, designation } = req.body;
 
-    if (!name || !department) {
+    if (!name || !designation) {
       return res
         .status(400)
-        .json({ error: "Name and department are required" });
+        .json({ error: "Name and designation are required" });
     }
 
     const rows = await query(
-      "INSERT INTO employees (name, department, manager_id) VALUES ($1, $2, $3) RETURNING id, name, department",
-      [name, department, req.user.id],
+      "INSERT INTO employees (name, designation, manager_id) VALUES ($1, $2, $3) RETURNING id, name, designation",
+      [name, designation, req.user.id],
     );
 
     res.status(201).json(rows[0]);
@@ -183,7 +183,7 @@ app.get("/api/cases/:id", requireAuth, async (req, res) => {
   const { id } = req.params;
 
   const caseRows = await query(
-    `SELECT cases.id, employees.name AS employee_name, employees.department,
+    `SELECT cases.id, employees.name AS employee_name, employees.designation,
             violations.name AS violation_name, cases.offense_number, cases.action,
             cases.status, cases.description
      FROM cases
@@ -209,7 +209,7 @@ app.get("/api/cases/:id", requireAuth, async (req, res) => {
 app.get("/api/cases", requireAuth, async (req, res) => {
   const cases = await query(
     `SELECT cases.id, employees.name AS employee_name, violations.name AS violation_name,
-            cases.offense_number, cases.action, cases.status
+                        cases.offense_number, cases.action, cases.status, cases.description, cases.created_at
      FROM cases
      JOIN employees   ON cases.employee_id  = employees.id
      JOIN violations  ON cases.violation_id = violations.id
@@ -421,17 +421,17 @@ app.delete("/api/employees/:id", requireAuth, async (req, res) => {
 app.patch("/api/employees/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, department } = req.body;
+    const { name, designation } = req.body;
 
-    if (!name || !department) {
+    if (!name || !designation) {
       return res
         .status(400)
-        .json({ error: "Name and department are required" });
+        .json({ error: "Name and designation are required" });
     }
 
     const rows = await query(
-      "UPDATE employees SET name = $1, department = $2 WHERE id = $3 AND manager_id = $4 RETURNING id, name, department",
-      [name, department, id, req.user.id],
+      "UPDATE employees SET name = $1, designation = $2 WHERE id = $3 AND manager_id = $4 RETURNING id, name, designation",
+      [name, designation, id, req.user.id],
     );
 
     if (rows.length === 0) {
@@ -439,6 +439,43 @@ app.patch("/api/employees/:id", requireAuth, async (req, res) => {
     }
 
     res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.get("/api/cases/preview", requireAuth, async (req, res) => {
+  try {
+    const { employeeId, violationId } = req.query;
+
+    if (!employeeId || !violationId) {
+      return res.status(400).json({ error: "employeeId and violationId are required" });
+    }
+
+    const countRows = await query(
+      "SELECT COUNT(*) FROM cases WHERE employee_id = $1 AND violation_id = $2",
+      [employeeId, violationId]
+    );
+    const offenseNumber = Number(countRows[0].count) + 1;
+
+    const ruleRows = await query(
+      "SELECT action FROM rules WHERE violation_id = $1 AND offense_number = $2",
+      [violationId, offenseNumber]
+    );
+    const action = ruleRows[0]?.action ?? "DISMISSAL";
+
+    res.json({ offenseNumber, action });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.get("/api/violations", requireAuth, async (req, res) => {
+  try {
+    const violations = await query("SELECT id, name FROM violations ORDER BY id");
+    res.json(violations);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });

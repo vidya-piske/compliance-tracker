@@ -127,6 +127,13 @@ export default function DashboardLayout() {
             Create incident
           </NavLink>
           <NavLink
+          to="/dashboard/cases"
+          className={navClass}
+          onClick={()=>setSidebarOpen(false)}
+          >
+            Cases
+          </NavLink>
+          <NavLink
             to="/dashboard/rules"
             className={navClass}
             onClick={() => setSidebarOpen(false)}

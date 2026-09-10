@@ -14,6 +14,7 @@ const DashboardLayout = lazy(() => import("./components/DashboardLayout"));
 const CreateIncident = lazy(() => import("./pages/CreateIncident"));
 const RuleBook = lazy(() => import("./pages/RuleBook"));
 const Employees = lazy(() => import("./pages/Employees"));
+const Cases = lazy(()=>import("./pages/Cases"));
 
 function App() {
   const dispatch = useDispatch();
@@ -47,6 +48,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard/create" replace />} />
           <Route path="employees" element={<Employees />} />
           <Route path="create" element={<CreateIncident />} />
+          <Route path="cases" element={<Cases/>} />
           <Route path="rules" element={<RuleBook />} />
         </Route>
         <Route path="/forgot-password" element={<ForgotPassword />} />

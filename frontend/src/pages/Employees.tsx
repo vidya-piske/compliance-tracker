@@ -2,19 +2,16 @@ import { useEffect, useState } from "react";
 import Dropdown from "../components/Dropdown";
 import { Pencil, Trash2 } from "lucide-react";
 
-type Employee = { id: number; name: string; department: string };
+type Employee = { id: number; name: string; designation: string };
 
 const inputClass =
   "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition";
 
-const departments = [
-  { value: "Sales", label: "Sales" },
-  { value: "Marketing", label: "Marketing" },
-  { value: "Engineering", label: "Engineering" },
-  { value: "Operations", label: "Operations" },
-  { value: "Finance", label: "Finance" },
-  { value: "Human Resources", label: "Human Resources" },
-  { value: "Customer Support", label: "Customer Support" },
+const designations = [
+  { value: "Intern", label: "Intern" },
+  { value: "Employee", label: "Employee" },
+  { value: "Senior", label: "Senior" },
+  { value: "Lead", label: "Lead" },
 ];
 
 function getInitials(name: string) {
@@ -27,11 +24,12 @@ function getInitials(name: string) {
 export default function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [name, setName] = useState("");
-  const [department, setDepartment] = useState("");
+  const [designation, setDesignation] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
+
   useEffect(() => {
     fetch("/api/employees", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : []))
@@ -49,7 +47,7 @@ export default function Employees() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name, department }),
+          body: JSON.stringify({ name, designation }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -62,7 +60,7 @@ export default function Employees() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name, department }),
+          body: JSON.stringify({ name, designation }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -75,7 +73,7 @@ export default function Employees() {
         setEditingId(null);
       }
       setName("");
-      setDepartment("");
+      setDesignation("");
     } catch {
       setError("Something went wrong. Try again.");
     } finally {
@@ -100,17 +98,18 @@ export default function Employees() {
 
     setEmployees((prev) => prev.filter((emp) => emp.id !== id));
   }
+
   function startEdit(emp: Employee) {
     setEditingId(emp.id);
     setName(emp.name);
-    setDepartment(emp.department);
+    setDesignation(emp.designation);
     setError("");
   }
 
   function cancelEdit() {
     setEditingId(null);
     setName("");
-    setDepartment("");
+    setDesignation("");
   }
 
   return (
@@ -126,6 +125,7 @@ export default function Employees() {
           {employees.length} {employees.length === 1 ? "member" : "members"}
         </span>
       </div>
+
       <form
         onSubmit={handleSubmit}
         className="mt-6 p-4 rounded-2xl border border-white/10 bg-white/[0.04]"
@@ -139,10 +139,10 @@ export default function Employees() {
           />
           <div className="flex-1">
             <Dropdown
-              value={department}
-              onChange={setDepartment}
-              options={departments}
-              placeholder="Select department"
+              value={designation}
+              onChange={setDesignation}
+              options={designations}
+              placeholder="Select designation"
             />
           </div>
           <button
@@ -178,6 +178,7 @@ export default function Employees() {
           </p>
         )}
       </form>
+
       {loading ? (
         <p className="mt-6 text-gray-400">Loading…</p>
       ) : employees.length === 0 ? (
@@ -190,7 +191,7 @@ export default function Employees() {
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider text-gray-500 bg-white/[0.02]">
                 <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Department</th>
+                <th className="px-4 py-3 font-semibold">Designation</th>
                 <th className="px-4 py-3 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -210,7 +211,7 @@ export default function Employees() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-block text-xs px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-200 border border-indigo-500/20">
-                      {emp.department}
+                      {emp.designation}
                     </span>
                   </td>
                   <td className="px-4 py-3">
