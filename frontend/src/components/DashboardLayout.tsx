@@ -118,6 +118,14 @@ export default function DashboardLayout() {
             </button>
           </div>
           <NavLink
+            to="/dashboard"
+            end
+            className={navClass}
+            onClick={() => setSidebarOpen(false)}
+          >
+            Overview
+          </NavLink>
+          <NavLink
             to="/dashboard/employees"
             className={navClass}
             onClick={() => setSidebarOpen(false)}

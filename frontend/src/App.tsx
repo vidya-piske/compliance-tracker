@@ -15,6 +15,7 @@ const CreateIncident = lazy(() => import("./pages/CreateIncident"));
 const RuleBook = lazy(() => import("./pages/RuleBook"));
 const Employees = lazy(() => import("./pages/Employees"));
 const Cases = lazy(()=>import("./pages/Cases"));
+const Overview = lazy(() => import("./pages/Overview"));
 
 function App() {
   const dispatch = useDispatch();
@@ -45,7 +46,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard/create" replace />} />
+          <Route index element={<Overview />} />
           <Route path="employees" element={<Employees />} />
           <Route path="create" element={<CreateIncident />} />
           <Route path="cases" element={<Cases/>} />
