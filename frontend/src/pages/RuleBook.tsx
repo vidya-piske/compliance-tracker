@@ -1,73 +1,63 @@
-const rules = [
-  {
-    step: 1,
-    action: "First warning",
-    trigger: "1st offense",
-    severity: "Low",
-    description:
-      "A documented verbal conversation. The employee is told the behavior was noticed and must not continue. No penalty yet — but it's now on record.",
-  },
-  {
-    step: 2,
-    action: "Final written warning",
-    trigger: "2nd offense",
-    severity: "Low",
-    description:
-      "A formal warning placed in the employee's file, making clear that the next offense will carry real consequences.",
-  },
-  {
-    step: 3,
-    action: "Suspension — 3 days",
-    trigger: "3rd offense",
-    severity: "Medium",
-    description:
-      "Three days off without pay. A tangible consequence signalling the pattern must stop now.",
-  },
-  {
-    step: 4,
-    action: "Suspension — 5 days",
-    trigger: "4th offense",
-    severity: "Medium",
-    description:
-      "Five days off without pay — the last step before termination is on the table.",
-  },
-  {
-    step: 5,
-    action: "Dismissal",
-    trigger: "5th offense",
-    severity: "High",
-    description:
-      "Termination of employment. Reserved for repeated violations after every earlier step has failed.",
-  },
-];
+import { useEffect, useState } from "react";
 
-const tones: Record<
-  string,
-  { node: string; glow: string; bar: string; pill: string }
-> = {
-  Low: {
+type Rule = {
+  id: number;
+  violation_id: number;
+  violation_name: string;
+  offense_number: number;
+  action: string;
+};
+
+const actionMeta: Record<string, { label: string; tone: "low" | "mid" | "high" }> = {
+  FIRST_WARNING: { label: "First warning", tone: "low" },
+  FINAL_WRITTEN_WARNING: { label: "Final written warning", tone: "low" },
+  SUSPENSION_3_DAYS: { label: "Suspension — 3 days", tone: "mid" },
+  SUSPENSION_5_DAYS: { label: "Suspension — 5 days", tone: "mid" },
+  DISMISSAL: { label: "Dismissal", tone: "high" },
+};
+
+const tones = {
+  low: {
     node: "from-emerald-400 to-emerald-600",
     glow: "shadow-emerald-500/30",
-    bar: "bg-emerald-400/70",
     pill: "text-emerald-300 bg-emerald-500/10",
+    label: "Low",
   },
-  Medium: {
+  mid: {
     node: "from-amber-400 to-orange-600",
     glow: "shadow-amber-500/30",
-    bar: "bg-amber-400/70",
     pill: "text-amber-300 bg-amber-500/10",
+    label: "Medium",
   },
-  High: {
+  high: {
     node: "from-rose-400 to-red-600",
     glow: "shadow-rose-500/40",
-    bar: "bg-rose-400/80",
     pill: "text-rose-300 bg-rose-500/15",
+    label: "High",
   },
 };
 
 export default function RuleBook() {
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/rules", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setRules(Array.isArray(data) ? data : []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // group the flat rules list into one ladder per violation
+  const groups = new Map<string, Rule[]>();
+  for (const r of rules) {
+    if (!groups.has(r.violation_name)) groups.set(r.violation_name, []);
+    groups.get(r.violation_name)!.push(r);
+  }
+  const violations = [...groups.entries()];
+
   return (
-    <div className="relative max-w-3xl">
+    <div className="relative max-w-5xl">
       <div className="pointer-events-none absolute -top-16 -left-10 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl" />
       <div className="pointer-events-none absolute -top-10 right-0 w-72 h-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
 
@@ -75,76 +65,67 @@ export default function RuleBook() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300/80">
           Disciplinary policy
         </p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-fuchsia-200 bg-clip-text text-transparent">
-          The escalation ladder
-        </h1>
-        <p className="mt-3 text-gray-400 max-w-2xl leading-relaxed">
-          Every violation follows the same path. Each repeat offense of the same
-          rule moves the employee one rung down — from a quiet word to
-          dismissal. The offense count decides the action automatically, so
-          outcomes stay consistent no matter who files the case.
+        <h1 className="mt-2 text-3xl font-bold tracking-tight">Rule book</h1>
+        <p className="text-gray-400 mt-1 max-w-2xl leading-relaxed">
+          Each violation has its own escalation ladder — the offense count decides
+          the action automatically, so outcomes stay consistent. More serious
+          violations start higher up the ladder.
         </p>
-        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-500">
-          <span>
-            <b className="text-gray-300">5</b> steps
-          </span>
-          <span>
-            <b className="text-gray-300">Verbal warning</b> →{" "}
-            <b className="text-gray-300">Dismissal</b>
-          </span>
-          <span>Applied automatically by offense count</span>
-        </div>
       </div>
 
-      <div className="relative mt-12">
-        {rules.map((rule, i) => {
-          const tone = tones[rule.severity];
-          const isLast = i === rules.length - 1;
-          return (
-            <div key={rule.step} className="group flex gap-5">
-              <div className="flex flex-col items-center">
-                <span
-                  className={`w-11 h-11 shrink-0 grid place-items-center rounded-full bg-gradient-to-br ${tone.node} text-white font-bold shadow-lg ${tone.glow}`}
-                >
-                  {rule.step}
-                </span>
-                {!isLast && (
-                  <span className="flex-1 w-px my-2 bg-gradient-to-b from-white/25 to-white/5" />
-                )}
+      {loading ? (
+        <p className="relative mt-6 text-gray-400">Loading…</p>
+      ) : violations.length === 0 ? (
+        <p className="relative mt-6 text-gray-400">No rules configured.</p>
+      ) : (
+        <div className="relative mt-8 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {violations.map(([name, steps]) => (
+            <div
+              key={name}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+            >
+              <div className="flex items-baseline justify-between mb-4">
+                <h2 className="text-lg font-semibold">{name}</h2>
+                <span className="text-xs text-gray-500">{steps.length} steps</span>
               </div>
 
-              <div className="relative flex-1 mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 transition duration-300 hover:border-white/20 hover:bg-white/[0.06] hover:-translate-y-0.5">
-                <span className="pointer-events-none absolute -right-1 -top-8 text-[7rem] font-black leading-none text-white/[0.03] select-none">
-                  {rule.step}
-                </span>
-
-                <span
-                  className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${tone.bar}`}
-                />
-
-                <div className="relative flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {rule.trigger}
-                    </p>
-                    <h3 className="mt-1 text-xl font-semibold">
-                      {rule.action}
-                    </h3>
+              {steps.map((r, i) => {
+                const meta = actionMeta[r.action] ?? {
+                  label: r.action,
+                  tone: "low" as const,
+                };
+                const t = tones[meta.tone];
+                const isLast = i === steps.length - 1;
+                return (
+                  <div key={r.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span
+                        className={`w-8 h-8 shrink-0 grid place-items-center rounded-full bg-gradient-to-br ${t.node} text-white text-xs font-bold shadow-lg ${t.glow}`}
+                      >
+                        {r.offense_number}
+                      </span>
+                      {!isLast && <span className="flex-1 w-px my-1 bg-white/10" />}
+                    </div>
+                    <div className="flex-1 pb-4 flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-wider text-gray-500">
+                          Offense {r.offense_number}
+                        </div>
+                        <div className="text-sm font-medium">{meta.label}</div>
+                      </div>
+                      <span
+                        className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${t.pill}`}
+                      >
+                        {t.label}
+                      </span>
+                    </div>
                   </div>
-                  <span
-                    className={`text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full ${tone.pill}`}
-                  >
-                    {rule.severity}
-                  </span>
-                </div>
-                <p className="relative mt-3 text-sm text-gray-400 leading-relaxed max-w-xl">
-                  {rule.description}
-                </p>
-              </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
