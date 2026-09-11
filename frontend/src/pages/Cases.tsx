@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Eye, Trash2 } from "lucide-react";
+import { Pencil, Eye, Trash2, Send } from "lucide-react";
 
 type Case = {
   id: number;
@@ -12,7 +12,7 @@ type Case = {
   created_at: string;
 };
 
-const EDITABLE = ["DRAFT", "SUBMITTED"];
+const EDITABLE = ["DRAFT", "SUBMITTED", "RETURNED"];
 
 const actionMeta: Record<string, { label: string; cls: string }> = {
   FIRST_WARNING: { label: "First warning", cls: "text-emerald-300 bg-emerald-500/10" },
@@ -101,6 +101,28 @@ export default function Cases() {
       setEditError("Something went wrong. Try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleResubmit(c: Case) {
+    setPageError("");
+    try {
+      const res = await fetch(`/api/cases/${c.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "SUBMITTED" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPageError(data.error || "Could not resubmit case");
+        return;
+      }
+      setCases((prev) =>
+        prev.map((x) => (x.id === c.id ? { ...x, status: "SUBMITTED" } : x)),
+      );
+    } catch {
+      setPageError("Something went wrong. Try again.");
     }
   }
 
@@ -246,6 +268,15 @@ export default function Cases() {
                         >
                           {editable ? <Pencil className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
+                        {c.status === "RETURNED" && (
+                          <button
+                            onClick={() => handleResubmit(c)}
+                            className="w-8 h-8 grid place-items-center rounded-lg border border-indigo-500/30 bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25 transition"
+                            title="Resubmit to HR"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                        )}
                         {editable ? (
                           <button
                             onClick={() => handleDelete(c)}

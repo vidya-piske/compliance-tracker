@@ -333,7 +333,7 @@ app.patch("/api/cases/:id", requireAuth, async (req, res) => {
           .status(403)
           .json({ error: "You can only edit your own cases." });
       }
-      if (found.status !== "DRAFT" && found.status !== "SUBMITTED") {
+      if (!["DRAFT", "SUBMITTED", "RETURNED"].includes(found.status)) {
         return res.status(409).json({
           error: "This case has been reviewed and can no longer be edited.",
         });
@@ -344,17 +344,35 @@ app.patch("/api/cases/:id", requireAuth, async (req, res) => {
       ]);
     }
 
-    // Reviewing (status change): HR only. Logged to the audit trail.
+    // Status changes — who's allowed depends on the target status.
     if (status) {
-      if (!isHR) {
-        return res.status(403).json({ error: "Only HR can review cases." });
+      let verb;
+      if (status === "SUBMITTED") {
+        // Manager (re)submits their OWN case, from a draft or a returned case.
+        if (found.manager_id !== req.user.id) {
+          return res
+            .status(403)
+            .json({ error: "You can only submit your own cases." });
+        }
+        if (!["DRAFT", "RETURNED"].includes(found.status)) {
+          return res.status(409).json({
+            error: "This case can't be submitted from its current state.",
+          });
+        }
+        verb =
+          found.status === "RETURNED"
+            ? "Resubmitted for review"
+            : "Submitted for review";
+      } else if (status === "APPROVED" || status === "RETURNED") {
+        // HR reviews a submitted case.
+        if (!isHR) {
+          return res.status(403).json({ error: "Only HR can review cases." });
+        }
+        verb = status === "APPROVED" ? "Approved by HR" : "Returned by HR";
+      } else {
+        return res.status(400).json({ error: "Invalid status" });
       }
-      const verb =
-        status === "APPROVED"
-          ? "Approved by HR"
-          : status === "RETURNED"
-            ? "Returned by HR"
-            : `Status changed to ${status}`;
+
       await query("UPDATE cases SET status = $1 WHERE id = $2", [status, id]);
       await query(
         "INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)",
@@ -386,8 +404,8 @@ app.delete("/api/cases/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Case not found" });
     }
 
-    // Reviewed records are permanent — cannot be deleted.
-    if (found.status !== "DRAFT" && found.status !== "SUBMITTED") {
+    // Approved/closed records are permanent — cannot be deleted.
+    if (!["DRAFT", "SUBMITTED", "RETURNED"].includes(found.status)) {
       return res.status(409).json({
         error: "This case has been reviewed and can no longer be deleted.",
       });
