@@ -18,6 +18,7 @@ const Cases = lazy(()=>import("./pages/Cases"));
 const Overview = lazy(() => import("./pages/Overview"));
 const HRReview = lazy(() => import("./pages/HRReview"));
 const HROverview = lazy(() => import("./pages/HROverview"));
+const MyCases = lazy(() => import("./pages/MyCases"));
 
 function App() {
   const dispatch = useDispatch();
@@ -51,7 +52,15 @@ function App() {
         >
           <Route
             index
-            element={user?.role === "hr" ? <HROverview /> : <Overview />}
+            element={
+              user?.role === "hr" ? (
+                <HROverview />
+              ) : user?.role === "employee" ? (
+                <MyCases />
+              ) : (
+                <Overview />
+              )
+            }
           />
           <Route path="review" element={<HRReview />} />
           <Route path="employees" element={<Employees />} />

@@ -59,7 +59,7 @@ app.get("/api/employees", requireAuth, async (req, res) => {
 
 app.post("/api/employees", requireAuth, async (req, res) => {
   try {
-    const { name, designation } = req.body;
+    const { name, designation, email } = req.body;
 
     if (!name || !designation) {
       return res
@@ -68,8 +68,8 @@ app.post("/api/employees", requireAuth, async (req, res) => {
     }
 
     const rows = await query(
-      "INSERT INTO employees (name, designation, manager_id) VALUES ($1, $2, $3) RETURNING id, name, designation",
-      [name, designation, req.user.id],
+      "INSERT INTO employees (name, designation, manager_id, email) VALUES ($1, $2, $3, $4) RETURNING id, name, designation, email",
+      [name, designation, req.user.id, email || null],
     );
 
     res.status(201).json(rows[0]);
@@ -237,7 +237,18 @@ app.get("/api/cases/:id", requireAuth, async (req, res) => {
 });
 
 app.get("/api/cases", requireAuth, async (req, res) => {
-  const isHR = req.user.role === "hr";
+  // Role-aware: HR sees everything, an employee sees cases about them
+  // (matched by email), a manager sees only their own team's cases.
+  let where = "WHERE employees.manager_id = $1";
+  let params = [req.user.id];
+  if (req.user.role === "hr") {
+    where = "";
+    params = [];
+  } else if (req.user.role === "employee") {
+    where = "WHERE employees.email = $1";
+    params = [req.user.email];
+  }
+
   const cases = await query(
     `SELECT cases.id, employees.name AS employee_name, mgr.name AS manager_name,
             violations.name AS violation_name, cases.offense_number, cases.action,
@@ -246,9 +257,9 @@ app.get("/api/cases", requireAuth, async (req, res) => {
      JOIN employees   ON cases.employee_id  = employees.id
      JOIN violations  ON cases.violation_id = violations.id
      JOIN users mgr   ON employees.manager_id = mgr.id
-     ${isHR ? "" : "WHERE employees.manager_id = $1"}
+     ${where}
      ORDER BY cases.id DESC`,
-    isHR ? [] : [req.user.id],
+    params,
   );
   res.json(cases);
 });
@@ -315,7 +326,8 @@ app.patch("/api/cases/:id", requireAuth, async (req, res) => {
 
     // Load the case with its owning manager, so we can authorize each action.
     const rows = await query(
-      `SELECT cases.id, cases.status, employees.manager_id
+      `SELECT cases.id, cases.status, employees.manager_id,
+              employees.email AS employee_email
        FROM cases
        JOIN employees ON cases.employee_id = employees.id
        WHERE cases.id = $1`,
@@ -370,6 +382,22 @@ app.patch("/api/cases/:id", requireAuth, async (req, res) => {
         }
         verb = status === "APPROVED" ? "Approved by HR" : "Returned by HR";
         if (note && note.trim()) verb += `: ${note.trim()}`;
+      } else if (status === "ACKNOWLEDGED") {
+        // The employee acknowledges an approved case about them.
+        if (
+          req.user.role !== "employee" ||
+          found.employee_email !== req.user.email
+        ) {
+          return res
+            .status(403)
+            .json({ error: "Only the employee can acknowledge this case." });
+        }
+        if (found.status !== "APPROVED") {
+          return res
+            .status(409)
+            .json({ error: "Only approved cases can be acknowledged." });
+        }
+        verb = "Acknowledged by employee";
       } else {
         return res.status(400).json({ error: "Invalid status" });
       }
@@ -540,7 +568,7 @@ app.delete("/api/employees/:id", requireAuth, async (req, res) => {
 app.patch("/api/employees/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, designation } = req.body;
+    const { name, designation, email } = req.body;
 
     if (!name || !designation) {
       return res
@@ -549,8 +577,8 @@ app.patch("/api/employees/:id", requireAuth, async (req, res) => {
     }
 
     const rows = await query(
-      "UPDATE employees SET name = $1, designation = $2 WHERE id = $3 AND manager_id = $4 RETURNING id, name, designation",
-      [name, designation, id, req.user.id],
+      "UPDATE employees SET name = $1, designation = $2, email = $3 WHERE id = $4 AND manager_id = $5 RETURNING id, name, designation, email",
+      [name, designation, email || null, id, req.user.id],
     );
 
     if (rows.length === 0) {

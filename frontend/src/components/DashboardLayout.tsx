@@ -35,6 +35,11 @@ export default function DashboardLayout() {
           { to: "/dashboard/review", label: "Review queue" },
           { to: "/dashboard/rules", label: "Rule book" },
         ]
+      : user?.role === "employee"
+      ? [
+          { to: "/dashboard", label: "My cases", end: true },
+          { to: "/dashboard/rules", label: "Rule book" },
+        ]
       : [
           { to: "/dashboard", label: "Overview", end: true },
           { to: "/dashboard/employees", label: "Employees" },

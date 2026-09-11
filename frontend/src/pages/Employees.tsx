@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import Dropdown from "../components/Dropdown";
 import { Pencil, Trash2 } from "lucide-react";
 
-type Employee = { id: number; name: string; designation: string };
+type Employee = {
+  id: number;
+  name: string;
+  designation: string;
+  email: string | null;
+};
 
 const inputClass =
   "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition";
@@ -25,6 +30,7 @@ export default function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [name, setName] = useState("");
   const [designation, setDesignation] = useState("");
+  const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -37,17 +43,24 @@ export default function Employees() {
       .finally(() => setLoading(false));
   }, []);
 
+  function resetForm() {
+    setName("");
+    setDesignation("");
+    setEmail("");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSaving(true);
     try {
+      const body = JSON.stringify({ name, designation, email: email || null });
       if (editingId === null) {
         const res = await fetch("/api/employees", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name, designation }),
+          body,
         });
         const data = await res.json();
         if (!res.ok) {
@@ -60,7 +73,7 @@ export default function Employees() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name, designation }),
+          body,
         });
         const data = await res.json();
         if (!res.ok) {
@@ -72,8 +85,7 @@ export default function Employees() {
         );
         setEditingId(null);
       }
-      setName("");
-      setDesignation("");
+      resetForm();
     } catch {
       setError("Something went wrong. Try again.");
     } finally {
@@ -84,18 +96,15 @@ export default function Employees() {
   async function handleDelete(id: number) {
     if (!confirm("Delete this employee?")) return;
     setError("");
-
     const res = await fetch(`/api/employees/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
-
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setError(data.error || "Could not delete employee");
       return;
     }
-
     setEmployees((prev) => prev.filter((emp) => emp.id !== id));
   }
 
@@ -103,13 +112,13 @@ export default function Employees() {
     setEditingId(emp.id);
     setName(emp.name);
     setDesignation(emp.designation);
+    setEmail(emp.email ?? "");
     setError("");
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setName("");
-    setDesignation("");
+    resetForm();
   }
 
   return (
@@ -130,14 +139,21 @@ export default function Employees() {
         onSubmit={handleSubmit}
         className="mt-6 p-4 rounded-2xl border border-white/10 bg-white/[0.04]"
       >
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Employee name"
-            className={`${inputClass} flex-1`}
+            className={`${inputClass} flex-1 min-w-[150px]`}
           />
-          <div className="flex-1">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Login email (optional)"
+            className={`${inputClass} flex-1 min-w-[150px]`}
+          />
+          <div className="flex-1 min-w-[150px]">
             <Dropdown
               value={designation}
               onChange={setDesignation}
@@ -172,6 +188,10 @@ export default function Employees() {
             </button>
           )}
         </div>
+        <p className="mt-2 text-xs text-gray-500">
+          Add a login email so the employee can sign in (role “Employee”) and
+          acknowledge cases about them.
+        </p>
         {error && (
           <p className="mt-3 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
             {error}
@@ -206,7 +226,14 @@ export default function Employees() {
                       <span className="w-8 h-8 shrink-0 grid place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-xs font-semibold">
                         {getInitials(emp.name)}
                       </span>
-                      <span className="font-medium">{emp.name}</span>
+                      <div className="min-w-0">
+                        <span className="font-medium block">{emp.name}</span>
+                        {emp.email && (
+                          <span className="text-xs text-gray-500 truncate block">
+                            {emp.email}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
