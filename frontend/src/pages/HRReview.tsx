@@ -46,6 +46,8 @@ export default function HRReview() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"pending" | "reviewed">("pending");
+  const [returning, setReturning] = useState<Case | null>(null);
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
     fetch("/api/cases", { credentials: "include" })
@@ -54,7 +56,11 @@ export default function HRReview() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function review(id: number, status: "APPROVED" | "RETURNED") {
+  async function review(
+    id: number,
+    status: "APPROVED" | "RETURNED",
+    note?: string,
+  ) {
     setBusyId(id);
     setError("");
     try {
@@ -62,7 +68,7 @@ export default function HRReview() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, note }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -76,6 +82,13 @@ export default function HRReview() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function submitReturn() {
+    if (!returning) return;
+    await review(returning.id, "RETURNED", reason);
+    setReturning(null);
+    setReason("");
   }
 
   const pending = cases.filter((c) => c.status === "SUBMITTED");
@@ -181,7 +194,10 @@ export default function HRReview() {
                       <Check className="w-4 h-4" /> Approve
                     </button>
                     <button
-                      onClick={() => review(c.id, "RETURNED")}
+                      onClick={() => {
+                        setReturning(c);
+                        setReason("");
+                      }}
                       disabled={busy}
                       className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 text-sm font-semibold hover:bg-amber-500/25 transition disabled:opacity-60"
                     >
@@ -203,6 +219,48 @@ export default function HRReview() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {returning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setReturning(null)}
+          />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-[#141426] p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold">Return this case</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {returning.employee_name} · {returning.violation_name}
+            </p>
+
+            <label className="block text-sm text-gray-300 mt-4 mb-2">
+              Reason (shown to the manager)
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="e.g. Needs more detail about what happened."
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition"
+            />
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setReturning(null)}
+                className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReturn}
+                disabled={busyId === returning.id}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-500/20 text-amber-200 border border-amber-500/40 text-sm font-semibold hover:bg-amber-500/30 transition disabled:opacity-60"
+              >
+                <Undo2 className="w-4 h-4" /> Return case
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

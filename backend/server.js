@@ -310,7 +310,7 @@ app.post("/api/cases", requireAuth, async (req, res) => {
 app.patch("/api/cases/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, description } = req.body;
+    const { status, description, note } = req.body;
     const isHR = req.user.role === "hr";
 
     // Load the case with its owning manager, so we can authorize each action.
@@ -369,6 +369,7 @@ app.patch("/api/cases/:id", requireAuth, async (req, res) => {
           return res.status(403).json({ error: "Only HR can review cases." });
         }
         verb = status === "APPROVED" ? "Approved by HR" : "Returned by HR";
+        if (note && note.trim()) verb += `: ${note.trim()}`;
       } else {
         return res.status(400).json({ error: "Invalid status" });
       }
