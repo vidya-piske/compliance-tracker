@@ -53,6 +53,10 @@ export default function Cases() {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
   const [pageError, setPageError] = useState("");
+  const [events, setEvents] = useState<
+    { actor: string; message: string; created_at: string }[]
+  >([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/cases", { credentials: "include" })
@@ -75,6 +79,12 @@ export default function Cases() {
     setEditing(c);
     setDraft(c.description ?? "");
     setEditError("");
+    setEvents([]);
+    setEventsLoading(true);
+    fetch(`/api/cases/${c.id}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : { events: [] }))
+      .then((data) => setEvents(Array.isArray(data.events) ? data.events : []))
+      .finally(() => setEventsLoading(false));
   }
 
   async function saveEdit() {
@@ -343,6 +353,42 @@ export default function Cases() {
                 {editError}
               </p>
             )}
+
+            {/* audit timeline */}
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">History</h3>
+              {eventsLoading ? (
+                <p className="text-xs text-gray-500">Loading history…</p>
+              ) : events.length === 0 ? (
+                <p className="text-xs text-gray-500">No history yet.</p>
+              ) : (
+                <div>
+                  {events.map((ev, i) => (
+                    <div key={i} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <span className="w-2 h-2 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
+                        {i < events.length - 1 && (
+                          <span className="flex-1 w-px bg-white/10 my-1" />
+                        )}
+                      </div>
+                      <div className="pb-3">
+                        <div className="text-sm text-gray-200">{ev.message}</div>
+                        <div className="text-xs text-gray-500">
+                          {ev.actor} ·{" "}
+                          {new Date(ev.created_at).toLocaleString(undefined, {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="mt-5 flex justify-end gap-3">
               <button
