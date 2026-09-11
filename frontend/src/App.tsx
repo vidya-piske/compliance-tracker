@@ -19,6 +19,7 @@ const Overview = lazy(() => import("./pages/Overview"));
 const HRReview = lazy(() => import("./pages/HRReview"));
 const HROverview = lazy(() => import("./pages/HROverview"));
 const MyCases = lazy(() => import("./pages/MyCases"));
+const EmployeeOverview = lazy(() => import("./pages/EmployeeOverview"));
 const AdminOverview = lazy(() => import("./pages/AdminOverview"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminRules = lazy(() => import("./pages/AdminRules"));
@@ -59,7 +60,7 @@ function App() {
               user?.role === "hr" ? (
                 <HROverview />
               ) : user?.role === "employee" ? (
-                <MyCases />
+                <EmployeeOverview />
               ) : user?.role === "admin" ? (
                 <AdminOverview />
               ) : (
@@ -67,6 +68,7 @@ function App() {
               )
             }
           />
+          <Route path="my-cases" element={<MyCases />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="manage-rules" element={<AdminRules />} />
           <Route path="review" element={<HRReview />} />
