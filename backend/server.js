@@ -277,27 +277,79 @@ app.post("/api/cases", requireAuth, async (req, res) => {
 app.patch("/api/cases/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, description } = req.body;
 
-    if (!status) {
-      return res.status(400).json({ error: "status is required" });
-    }
-
+    // Only the manager who owns this case (via their employee) can touch it.
     const rows = await query(
-      "UPDATE cases SET status = $1 WHERE id = $2 RETURNING id",
-      [status, id],
+      `SELECT cases.id, cases.status
+       FROM cases
+       JOIN employees ON cases.employee_id = employees.id
+       WHERE cases.id = $1 AND employees.manager_id = $2`,
+      [id, req.user.id],
     );
-
-    if (rows.length === 0) {
+    const found = rows[0];
+    if (!found) {
       return res.status(404).json({ error: "Case not found" });
     }
 
-    await query(
-      "INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)",
-      [id, req.user.name, `Status changed to ${status}`],
-    );
+    // Editing the facts (description) is only allowed before HR review.
+    if (description !== undefined) {
+      if (found.status !== "DRAFT" && found.status !== "SUBMITTED") {
+        return res.status(409).json({
+          error: "This case has been reviewed and can no longer be edited.",
+        });
+      }
+      await query("UPDATE cases SET description = $1 WHERE id = $2", [
+        description,
+        id,
+      ]);
+    }
 
-    res.json({ id: Number(id), status });
+    // Status change (HR workflow) — logged to the audit trail.
+    if (status) {
+      await query("UPDATE cases SET status = $1 WHERE id = $2", [status, id]);
+      await query(
+        "INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)",
+        [id, req.user.name, `Status changed to ${status}`],
+      );
+    }
+
+    res.json({ id: Number(id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.delete("/api/cases/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Only the manager who owns this case (via their employee) can delete it.
+    const rows = await query(
+      `SELECT cases.id, cases.status
+       FROM cases
+       JOIN employees ON cases.employee_id = employees.id
+       WHERE cases.id = $1 AND employees.manager_id = $2`,
+      [id, req.user.id],
+    );
+    const found = rows[0];
+    if (!found) {
+      return res.status(404).json({ error: "Case not found" });
+    }
+
+    // Reviewed records are permanent — cannot be deleted.
+    if (found.status !== "DRAFT" && found.status !== "SUBMITTED") {
+      return res.status(409).json({
+        error: "This case has been reviewed and can no longer be deleted.",
+      });
+    }
+
+    // Remove the audit events first (foreign key), then the case itself.
+    await query("DELETE FROM case_events WHERE case_id = $1", [id]);
+    await query("DELETE FROM cases WHERE id = $1", [id]);
+
+    res.json({ id: Number(id) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });

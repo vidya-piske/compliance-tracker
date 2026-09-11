@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Pencil, Eye, Trash2 } from "lucide-react";
 
 type Case = {
   id: number;
@@ -10,6 +11,8 @@ type Case = {
   description: string | null;
   created_at: string;
 };
+
+const EDITABLE = ["DRAFT", "SUBMITTED"];
 
 const actionMeta: Record<string, { label: string; cls: string }> = {
   FIRST_WARNING: { label: "First warning", cls: "text-emerald-300 bg-emerald-500/10" },
@@ -45,6 +48,12 @@ export default function Cases() {
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [editing, setEditing] = useState<Case | null>(null);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [pageError, setPageError] = useState("");
+
   useEffect(() => {
     fetch("/api/cases", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : []))
@@ -61,6 +70,60 @@ export default function Cases() {
     { label: "Pending HR", value: pending, cls: "text-indigo-300" },
     { label: "Approved", value: approved, cls: "text-emerald-300" },
   ];
+
+  function openCase(c: Case) {
+    setEditing(c);
+    setDraft(c.description ?? "");
+    setEditError("");
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    setSaving(true);
+    setEditError("");
+    try {
+      const res = await fetch(`/api/cases/${editing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ description: draft }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEditError(data.error || "Could not save changes");
+        return;
+      }
+      setCases((prev) =>
+        prev.map((c) => (c.id === editing.id ? { ...c, description: draft } : c)),
+      );
+      setEditing(null);
+    } catch {
+      setEditError("Something went wrong. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(c: Case) {
+    if (!confirm(`Delete this case for ${c.employee_name}? This can't be undone.`)) return;
+    setPageError("");
+    try {
+      const res = await fetch(`/api/cases/${c.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPageError(data.error || "Could not delete case");
+        return;
+      }
+      setCases((prev) => prev.filter((x) => x.id !== c.id));
+    } catch {
+      setPageError("Something went wrong. Try again.");
+    }
+  }
+
+  const canEditSelected = editing ? EDITABLE.includes(editing.status) : false;
 
   return (
     <div className="max-w-5xl">
@@ -85,6 +148,12 @@ export default function Cases() {
         ))}
       </div>
 
+      {pageError && (
+        <p className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
+          {pageError}
+        </p>
+      )}
+
       {loading ? (
         <p className="mt-6 text-gray-400">Loading…</p>
       ) : cases.length === 0 ? (
@@ -102,6 +171,7 @@ export default function Cases() {
                 <th className="px-5 py-3.5 font-semibold">Action</th>
                 <th className="px-5 py-3.5 font-semibold">Status</th>
                 <th className="px-5 py-3.5 font-semibold whitespace-nowrap">Filed</th>
+                <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -115,6 +185,7 @@ export default function Cases() {
                   cls: "text-gray-300 bg-white/10",
                   dot: "bg-gray-400",
                 };
+                const editable = EDITABLE.includes(c.status);
                 return (
                   <tr
                     key={c.id}
@@ -135,7 +206,10 @@ export default function Cases() {
                         {c.violation_name}
                       </div>
                       {c.description && (
-                        <div className="text-xs text-gray-500 mt-0.5 line-clamp-2" title={c.description}>
+                        <div
+                          className="text-xs text-gray-500 mt-0.5 line-clamp-2"
+                          title={c.description}
+                        >
                           {c.description}
                         </div>
                       )}
@@ -163,11 +237,103 @@ export default function Cases() {
                     <td className="px-5 py-4 text-gray-400 whitespace-nowrap">
                       {formatDate(c.created_at)}
                     </td>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openCase(c)}
+                          className="w-8 h-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-indigo-400 hover:border-indigo-400/40 transition"
+                          title={editable ? "Edit description" : "View details"}
+                        >
+                          {editable ? <Pencil className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        {editable ? (
+                          <button
+                            onClick={() => handleDelete(c)}
+                            className="w-8 h-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-rose-400 hover:border-rose-400/40 transition"
+                            title="Delete case"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span
+                            className="w-8 h-8 grid place-items-center text-xs text-gray-600"
+                            title="Locked — already reviewed"
+                          >
+                            🔒
+                          </span>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setEditing(null)}
+          />
+          <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/10 bg-[#141426] p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold">
+              {canEditSelected ? "Edit case" : "Case details"}
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {editing.employee_name} · {editing.violation_name} · Offense #
+              {editing.offense_number}
+            </p>
+
+            <label className="block text-sm text-gray-300 mt-4 mb-2">
+              Description
+            </label>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              readOnly={!canEditSelected}
+              rows={5}
+              placeholder="No description provided."
+              className={`w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition ${
+                canEditSelected ? "" : "opacity-80 cursor-default"
+              }`}
+            />
+
+            {!canEditSelected && (
+              <p className="mt-2 text-xs text-gray-500">
+                🔒 This case has been reviewed and is read-only.
+              </p>
+            )}
+
+            {editError && (
+              <p className="mt-3 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                {editError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition"
+              >
+                {canEditSelected ? "Cancel" : "Close"}
+              </button>
+              {canEditSelected && (
+                <button
+                  onClick={saveEdit}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-sm font-semibold hover:from-indigo-400 hover:to-fuchsia-400 transition disabled:opacity-60"
+                >
+                  {saving && (
+                    <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  )}
+                  {saving ? "Saving…" : "Save"}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
