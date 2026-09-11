@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Undo2 } from "lucide-react";
+import { Check, Undo2, History } from "lucide-react";
 
 type Case = {
   id: number;
@@ -48,6 +48,21 @@ export default function HRReview() {
   const [tab, setTab] = useState<"pending" | "reviewed">("pending");
   const [returning, setReturning] = useState<Case | null>(null);
   const [reason, setReason] = useState("");
+  const [viewing, setViewing] = useState<Case | null>(null);
+  const [events, setEvents] = useState<
+    { actor: string; message: string; created_at: string }[]
+  >([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+
+  function openHistory(c: Case) {
+    setViewing(c);
+    setEvents([]);
+    setEventsLoading(true);
+    fetch(`/api/cases/${c.id}`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { events: [] }))
+      .then((d) => setEvents(Array.isArray(d.events) ? d.events : []))
+      .finally(() => setEventsLoading(false));
+  }
 
   useEffect(() => {
     fetch("/api/cases", { credentials: "include" })
@@ -175,6 +190,13 @@ export default function HRReview() {
                     >
                       {action.label}
                     </span>
+                    <button
+                      onClick={() => openHistory(c)}
+                      className="w-7 h-7 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-indigo-400 hover:border-indigo-400/40 transition"
+                      title="View history"
+                    >
+                      <History className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
@@ -258,6 +280,72 @@ export default function HRReview() {
                 className="flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-500/20 text-amber-200 border border-amber-500/40 text-sm font-semibold hover:bg-amber-500/30 transition disabled:opacity-60"
               >
                 <Undo2 className="w-4 h-4" /> Return case
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setViewing(null)}
+          />
+          <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/10 bg-[#141426] p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold">Case history</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {viewing.employee_name} · {viewing.violation_name} · Offense #
+              {viewing.offense_number}
+            </p>
+
+            {viewing.description && (
+              <p className="text-sm text-gray-400 mt-4 leading-relaxed">
+                {viewing.description}
+              </p>
+            )}
+
+            <h3 className="text-sm font-semibold text-gray-300 mt-6 mb-3">
+              History
+            </h3>
+            {eventsLoading ? (
+              <p className="text-xs text-gray-500">Loading history…</p>
+            ) : events.length === 0 ? (
+              <p className="text-xs text-gray-500">No history yet.</p>
+            ) : (
+              <div>
+                {events.map((ev, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className="w-2 h-2 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
+                      {i < events.length - 1 && (
+                        <span className="flex-1 w-px bg-white/10 my-1" />
+                      )}
+                    </div>
+                    <div className="pb-3">
+                      <div className="text-sm text-gray-200">{ev.message}</div>
+                      <div className="text-xs text-gray-500">
+                        {ev.actor} ·{" "}
+                        {new Date(ev.created_at).toLocaleString(undefined, {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setViewing(null)}
+                className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition"
+              >
+                Close
               </button>
             </div>
           </div>
