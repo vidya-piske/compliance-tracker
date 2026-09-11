@@ -19,6 +19,9 @@ const Overview = lazy(() => import("./pages/Overview"));
 const HRReview = lazy(() => import("./pages/HRReview"));
 const HROverview = lazy(() => import("./pages/HROverview"));
 const MyCases = lazy(() => import("./pages/MyCases"));
+const AdminOverview = lazy(() => import("./pages/AdminOverview"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminRules = lazy(() => import("./pages/AdminRules"));
 
 function App() {
   const dispatch = useDispatch();
@@ -57,11 +60,15 @@ function App() {
                 <HROverview />
               ) : user?.role === "employee" ? (
                 <MyCases />
+              ) : user?.role === "admin" ? (
+                <AdminOverview />
               ) : (
                 <Overview />
               )
             }
           />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="manage-rules" element={<AdminRules />} />
           <Route path="review" element={<HRReview />} />
           <Route path="employees" element={<Employees />} />
           <Route path="create" element={<CreateIncident />} />

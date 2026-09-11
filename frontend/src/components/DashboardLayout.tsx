@@ -40,6 +40,13 @@ export default function DashboardLayout() {
           { to: "/dashboard", label: "My cases", end: true },
           { to: "/dashboard/rules", label: "Rule book" },
         ]
+      : user?.role === "admin"
+      ? [
+          { to: "/dashboard", label: "Overview", end: true },
+          { to: "/dashboard/users", label: "Users" },
+          { to: "/dashboard/manage-rules", label: "Manage rules" },
+          { to: "/dashboard/rules", label: "Rule book" },
+        ]
       : [
           { to: "/dashboard", label: "Overview", end: true },
           { to: "/dashboard/employees", label: "Employees" },

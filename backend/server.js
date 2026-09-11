@@ -241,7 +241,7 @@ app.get("/api/cases", requireAuth, async (req, res) => {
   // (matched by email), a manager sees only their own team's cases.
   let where = "WHERE employees.manager_id = $1";
   let params = [req.user.id];
-  if (req.user.role === "hr") {
+  if (req.user.role === "hr" || req.user.role === "admin") {
     where = "";
     params = [];
   } else if (req.user.role === "employee") {
@@ -460,6 +460,50 @@ app.get("/api/rules", requireAuth, async (req, res) => {
      ORDER BY rules.violation_id, rules.offense_number`,
   );
   res.json(rules);
+});
+
+function requireAdmin(req, res, next) {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Admins only" });
+  }
+  next();
+}
+
+app.get("/api/users", requireAuth, requireAdmin, async (req, res) => {
+  const users = await query(
+    "SELECT id, name, email, role FROM users ORDER BY role, id",
+  );
+  res.json(users);
+});
+
+app.post("/api/rules", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { violationId, offenseNumber, action } = req.body;
+    if (!violationId || !offenseNumber || !action) {
+      return res.status(400).json({
+        error: "violationId, offenseNumber and action are required",
+      });
+    }
+    const rows = await query(
+      "INSERT INTO rules (violation_id, offense_number, action) VALUES ($1, $2, $3) RETURNING id, violation_id, offense_number, action",
+      [violationId, offenseNumber, action],
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+app.delete("/api/rules/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query("DELETE FROM rules WHERE id = $1", [id]);
+    res.json({ id: Number(id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
 });
 
 app.post("/api/forgot-password", async (req, res) => {
