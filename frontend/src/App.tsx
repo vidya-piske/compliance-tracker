@@ -1,7 +1,7 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "./store/authSlice";
 import Loader from "./components/Loader";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -16,9 +16,11 @@ const RuleBook = lazy(() => import("./pages/RuleBook"));
 const Employees = lazy(() => import("./pages/Employees"));
 const Cases = lazy(()=>import("./pages/Cases"));
 const Overview = lazy(() => import("./pages/Overview"));
+const HRReview = lazy(() => import("./pages/HRReview"));
 
 function App() {
   const dispatch = useDispatch();
+  const user = useSelector((s: any) => s.auth.user);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -46,7 +48,17 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Overview />} />
+          <Route
+            index
+            element={
+              user?.role === "hr" ? (
+                <Navigate to="/dashboard/review" replace />
+              ) : (
+                <Overview />
+              )
+            }
+          />
+          <Route path="review" element={<HRReview />} />
           <Route path="employees" element={<Employees />} />
           <Route path="create" element={<CreateIncident />} />
           <Route path="cases" element={<Cases/>} />

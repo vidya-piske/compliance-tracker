@@ -28,6 +28,20 @@ export default function DashboardLayout() {
     }
   }
 
+  const navItems =
+    user?.role === "hr"
+      ? [
+          { to: "/dashboard/review", label: "Review queue", end: true },
+          { to: "/dashboard/rules", label: "Rule book" },
+        ]
+      : [
+          { to: "/dashboard", label: "Overview", end: true },
+          { to: "/dashboard/employees", label: "Employees" },
+          { to: "/dashboard/create", label: "Create incident" },
+          { to: "/dashboard/cases", label: "Cases" },
+          { to: "/dashboard/rules", label: "Rule book" },
+        ];
+
   return (
     <div className="min-h-screen bg-[#0a0a14] text-white">
       <header className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 border-b border-white/10">
@@ -117,42 +131,17 @@ export default function DashboardLayout() {
               </svg>
             </button>
           </div>
-          <NavLink
-            to="/dashboard"
-            end
-            className={navClass}
-            onClick={() => setSidebarOpen(false)}
-          >
-            Overview
-          </NavLink>
-          <NavLink
-            to="/dashboard/employees"
-            className={navClass}
-            onClick={() => setSidebarOpen(false)}
-          >
-            Employees
-          </NavLink>
-          <NavLink
-            to="/dashboard/create"
-            className={navClass}
-            onClick={() => setSidebarOpen(false)}
-          >
-            Create incident
-          </NavLink>
-          <NavLink
-            to="/dashboard/cases"
-            className={navClass}
-            onClick={() => setSidebarOpen(false)}
-          >
-            Cases
-          </NavLink>
-          <NavLink
-            to="/dashboard/rules"
-            className={navClass}
-            onClick={() => setSidebarOpen(false)}
-          >
-            Rule book
-          </NavLink>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={navClass}
+              onClick={() => setSidebarOpen(false)}
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </aside>
 
         <main className="flex-1 p-6 lg:p-8">

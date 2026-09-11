@@ -237,15 +237,18 @@ app.get("/api/cases/:id", requireAuth, async (req, res) => {
 });
 
 app.get("/api/cases", requireAuth, async (req, res) => {
+  const isHR = req.user.role === "hr";
   const cases = await query(
-    `SELECT cases.id, employees.name AS employee_name, violations.name AS violation_name,
-                        cases.offense_number, cases.action, cases.status, cases.description, cases.created_at
+    `SELECT cases.id, employees.name AS employee_name, mgr.name AS manager_name,
+            violations.name AS violation_name, cases.offense_number, cases.action,
+            cases.status, cases.description, cases.created_at
      FROM cases
      JOIN employees   ON cases.employee_id  = employees.id
      JOIN violations  ON cases.violation_id = violations.id
-     WHERE employees.manager_id = $1
+     JOIN users mgr   ON employees.manager_id = mgr.id
+     ${isHR ? "WHERE cases.status = 'SUBMITTED'" : "WHERE employees.manager_id = $1"}
      ORDER BY cases.id DESC`,
-    [req.user.id],
+    isHR ? [] : [req.user.id],
   );
   res.json(cases);
 });
@@ -308,22 +311,28 @@ app.patch("/api/cases/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, description } = req.body;
+    const isHR = req.user.role === "hr";
 
-    // Only the manager who owns this case (via their employee) can touch it.
+    // Load the case with its owning manager, so we can authorize each action.
     const rows = await query(
-      `SELECT cases.id, cases.status
+      `SELECT cases.id, cases.status, employees.manager_id
        FROM cases
        JOIN employees ON cases.employee_id = employees.id
-       WHERE cases.id = $1 AND employees.manager_id = $2`,
-      [id, req.user.id],
+       WHERE cases.id = $1`,
+      [id],
     );
     const found = rows[0];
     if (!found) {
       return res.status(404).json({ error: "Case not found" });
     }
 
-    // Editing the facts (description) is only allowed before HR review.
+    // Editing the facts (description): only the owning manager, before review.
     if (description !== undefined) {
+      if (found.manager_id !== req.user.id) {
+        return res
+          .status(403)
+          .json({ error: "You can only edit your own cases." });
+      }
       if (found.status !== "DRAFT" && found.status !== "SUBMITTED") {
         return res.status(409).json({
           error: "This case has been reviewed and can no longer be edited.",
@@ -335,12 +344,21 @@ app.patch("/api/cases/:id", requireAuth, async (req, res) => {
       ]);
     }
 
-    // Status change (HR workflow) — logged to the audit trail.
+    // Reviewing (status change): HR only. Logged to the audit trail.
     if (status) {
+      if (!isHR) {
+        return res.status(403).json({ error: "Only HR can review cases." });
+      }
+      const verb =
+        status === "APPROVED"
+          ? "Approved by HR"
+          : status === "RETURNED"
+            ? "Returned by HR"
+            : `Status changed to ${status}`;
       await query("UPDATE cases SET status = $1 WHERE id = $2", [status, id]);
       await query(
         "INSERT INTO case_events (case_id, actor, message) VALUES ($1, $2, $3)",
-        [id, req.user.name, `Status changed to ${status}`],
+        [id, req.user.name, verb],
       );
     }
 
