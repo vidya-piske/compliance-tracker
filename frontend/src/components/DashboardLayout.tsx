@@ -31,7 +31,8 @@ export default function DashboardLayout() {
   const navItems =
     user?.role === "hr"
       ? [
-          { to: "/dashboard/review", label: "Review queue", end: true },
+          { to: "/dashboard", label: "Overview", end: true },
+          { to: "/dashboard/review", label: "Review queue" },
           { to: "/dashboard/rules", label: "Rule book" },
         ]
       : [

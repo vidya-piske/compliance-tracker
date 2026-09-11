@@ -246,7 +246,7 @@ app.get("/api/cases", requireAuth, async (req, res) => {
      JOIN employees   ON cases.employee_id  = employees.id
      JOIN violations  ON cases.violation_id = violations.id
      JOIN users mgr   ON employees.manager_id = mgr.id
-     ${isHR ? "WHERE cases.status = 'SUBMITTED'" : "WHERE employees.manager_id = $1"}
+     ${isHR ? "" : "WHERE employees.manager_id = $1"}
      ORDER BY cases.id DESC`,
     isHR ? [] : [req.user.id],
   );

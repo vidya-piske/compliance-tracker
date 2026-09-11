@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +17,7 @@ const Employees = lazy(() => import("./pages/Employees"));
 const Cases = lazy(()=>import("./pages/Cases"));
 const Overview = lazy(() => import("./pages/Overview"));
 const HRReview = lazy(() => import("./pages/HRReview"));
+const HROverview = lazy(() => import("./pages/HROverview"));
 
 function App() {
   const dispatch = useDispatch();
@@ -50,13 +51,7 @@ function App() {
         >
           <Route
             index
-            element={
-              user?.role === "hr" ? (
-                <Navigate to="/dashboard/review" replace />
-              ) : (
-                <Overview />
-              )
-            }
+            element={user?.role === "hr" ? <HROverview /> : <Overview />}
           />
           <Route path="review" element={<HRReview />} />
           <Route path="employees" element={<Employees />} />

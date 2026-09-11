@@ -43,7 +43,13 @@ export default function HRReview() {
   useEffect(() => {
     fetch("/api/cases", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setCases(Array.isArray(data) ? data : []))
+      .then((data) =>
+        setCases(
+          (Array.isArray(data) ? data : []).filter(
+            (c: Case) => c.status === "SUBMITTED",
+          ),
+        ),
+      )
       .finally(() => setLoading(false));
   }, []);
 
