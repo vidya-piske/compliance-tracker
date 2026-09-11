@@ -179,6 +179,36 @@ app.get("/api/me", async (req, res) => {
   }
 });
 
+// Must come BEFORE "/api/cases/:id" — otherwise "preview" is treated as an :id.
+app.get("/api/cases/preview", requireAuth, async (req, res) => {
+  try {
+    const { employeeId, violationId } = req.query;
+
+    if (!employeeId || !violationId) {
+      return res
+        .status(400)
+        .json({ error: "employeeId and violationId are required" });
+    }
+
+    const countRows = await query(
+      "SELECT COUNT(*) FROM cases WHERE employee_id = $1 AND violation_id = $2",
+      [employeeId, violationId],
+    );
+    const offenseNumber = Number(countRows[0].count) + 1;
+
+    const ruleRows = await query(
+      "SELECT action FROM rules WHERE violation_id = $1 AND offense_number = $2",
+      [violationId, offenseNumber],
+    );
+    const action = ruleRows[0]?.action ?? "DISMISSAL";
+
+    res.json({ offenseNumber, action });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
 app.get("/api/cases/:id", requireAuth, async (req, res) => {
   const { id } = req.params;
 
@@ -497,32 +527,7 @@ app.patch("/api/employees/:id", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/cases/preview", requireAuth, async (req, res) => {
-  try {
-    const { employeeId, violationId } = req.query;
-
-    if (!employeeId || !violationId) {
-      return res.status(400).json({ error: "employeeId and violationId are required" });
-    }
-
-    const countRows = await query(
-      "SELECT COUNT(*) FROM cases WHERE employee_id = $1 AND violation_id = $2",
-      [employeeId, violationId]
-    );
-    const offenseNumber = Number(countRows[0].count) + 1;
-
-    const ruleRows = await query(
-      "SELECT action FROM rules WHERE violation_id = $1 AND offense_number = $2",
-      [violationId, offenseNumber]
-    );
-    const action = ruleRows[0]?.action ?? "DISMISSAL";
-
-    res.json({ offenseNumber, action });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Something went wrong" });
-  }
-});
+// (preview route moved above /api/cases/:id — see there)
 
 app.get("/api/violations", requireAuth, async (req, res) => {
   try {

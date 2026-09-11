@@ -27,6 +27,10 @@ export default function CreateIncident() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [preview, setPreview] = useState<{
+    offenseNumber: number;
+    action: string;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/employees", { credentials: "include" })
@@ -36,6 +40,20 @@ export default function CreateIncident() {
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setViolations(Array.isArray(data) ? data : []));
   }, []);
+
+  // Live preview: recompute the offense # + action whenever the picks change.
+  useEffect(() => {
+    if (!employeeId || !violationId) {
+      setPreview(null);
+      return;
+    }
+    fetch(
+      `/api/cases/preview?employeeId=${employeeId}&violationId=${violationId}`,
+      { credentials: "include" },
+    )
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPreview(data));
+  }, [employeeId, violationId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -145,6 +163,26 @@ export default function CreateIncident() {
           <p className="text-sm text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2.5">
             {success}
           </p>
+        )}
+
+        {preview && (
+          <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/[0.08] p-4 flex items-center gap-3">
+            <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-indigo-500/20 text-indigo-200 font-bold">
+              #{preview.offenseNumber}
+            </span>
+            <div className="text-sm">
+              <div className="text-gray-300">
+                This will be offense{" "}
+                <b className="text-white">#{preview.offenseNumber}</b> for this rule
+              </div>
+              <div className="text-gray-400">
+                Mandated action:{" "}
+                <b className="text-indigo-200">
+                  {actionLabels[preview.action] ?? preview.action}
+                </b>
+              </div>
+            </div>
+          </div>
         )}
 
         <button
