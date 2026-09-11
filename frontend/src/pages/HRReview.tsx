@@ -21,6 +21,12 @@ const actionMeta: Record<string, { label: string; cls: string }> = {
   DISMISSAL: { label: "Dismissal", cls: "text-rose-300 bg-rose-500/15" },
 };
 
+const statusMeta: Record<string, { label: string; cls: string; dot: string }> = {
+  APPROVED: { label: "Approved", cls: "text-emerald-300 bg-emerald-500/10", dot: "bg-emerald-400" },
+  RETURNED: { label: "Returned", cls: "text-amber-300 bg-amber-500/10", dot: "bg-amber-400" },
+  CLOSED: { label: "Closed", cls: "text-gray-400 bg-white/5", dot: "bg-gray-500" },
+};
+
 function getInitials(name: string) {
   const w = name.trim().split(" ");
   return ((w[0]?.[0] ?? "") + (w[1]?.[0] ?? "")).toUpperCase();
@@ -39,17 +45,12 @@ export default function HRReview() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [tab, setTab] = useState<"pending" | "reviewed">("pending");
 
   useEffect(() => {
     fetch("/api/cases", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : []))
-      .then((data) =>
-        setCases(
-          (Array.isArray(data) ? data : []).filter(
-            (c: Case) => c.status === "SUBMITTED",
-          ),
-        ),
-      )
+      .then((data) => setCases(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
   }, []);
 
@@ -68,8 +69,8 @@ export default function HRReview() {
         setError(data.error || "Could not update the case");
         return;
       }
-      // once reviewed it's no longer pending — drop it from the queue
-      setCases((prev) => prev.filter((c) => c.id !== id));
+      // move it to the reviewed tab by updating its status in place
+      setCases((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
     } catch {
       setError("Something went wrong. Try again.");
     } finally {
@@ -77,20 +78,38 @@ export default function HRReview() {
     }
   }
 
+  const pending = cases.filter((c) => c.status === "SUBMITTED");
+  const reviewed = cases.filter((c) =>
+    ["APPROVED", "RETURNED", "CLOSED"].includes(c.status),
+  );
+  const list = tab === "pending" ? pending : reviewed;
+
+  const tabClass = (active: boolean) =>
+    `px-4 py-2 rounded-lg text-sm font-medium transition ${
+      active
+        ? "bg-white/10 text-white border border-white/15"
+        : "text-gray-400 hover:text-white"
+    }`;
+
   return (
     <div className="max-w-3xl">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300/80">
         HR · Review queue
       </p>
-      <div className="mt-2 flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Pending review</h1>
-        <span className="shrink-0 text-sm text-gray-400 px-3 py-1 rounded-full border border-white/10 bg-white/5">
-          {cases.length} pending
-        </span>
-      </div>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight">Cases to review</h1>
       <p className="text-gray-400 mt-1">
-        Cases submitted by managers, awaiting your decision.
+        Approve or return submitted cases, and look back at your decisions.
       </p>
+
+      {/* tabs */}
+      <div className="mt-6 flex gap-2">
+        <button className={tabClass(tab === "pending")} onClick={() => setTab("pending")}>
+          Pending ({pending.length})
+        </button>
+        <button className={tabClass(tab === "reviewed")} onClick={() => setTab("reviewed")}>
+          Reviewed ({reviewed.length})
+        </button>
+      </div>
 
       {error && (
         <p className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
@@ -100,17 +119,20 @@ export default function HRReview() {
 
       {loading ? (
         <p className="mt-6 text-gray-400">Loading…</p>
-      ) : cases.length === 0 ? (
+      ) : list.length === 0 ? (
         <div className="mt-6 border border-dashed border-white/15 rounded-2xl p-10 text-center text-gray-400">
-          🎉 All caught up — nothing pending review.
+          {tab === "pending"
+            ? "🎉 All caught up — nothing pending review."
+            : "No reviewed cases yet."}
         </div>
       ) : (
         <div className="mt-6 space-y-4">
-          {cases.map((c) => {
+          {list.map((c) => {
             const action = actionMeta[c.action] ?? {
               label: c.action,
               cls: "text-gray-300 bg-white/10",
             };
+            const status = statusMeta[c.status];
             const busy = busyId === c.id;
             return (
               <div
@@ -149,22 +171,35 @@ export default function HRReview() {
                   </p>
                 )}
 
-                <div className="mt-4 flex gap-3">
-                  <button
-                    onClick={() => review(c.id, "APPROVED")}
-                    disabled={busy}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-semibold hover:bg-emerald-500/25 transition disabled:opacity-60"
-                  >
-                    <Check className="w-4 h-4" /> Approve
-                  </button>
-                  <button
-                    onClick={() => review(c.id, "RETURNED")}
-                    disabled={busy}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 text-sm font-semibold hover:bg-amber-500/25 transition disabled:opacity-60"
-                  >
-                    <Undo2 className="w-4 h-4" /> Return
-                  </button>
-                </div>
+                {tab === "pending" ? (
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      onClick={() => review(c.id, "APPROVED")}
+                      disabled={busy}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-semibold hover:bg-emerald-500/25 transition disabled:opacity-60"
+                    >
+                      <Check className="w-4 h-4" /> Approve
+                    </button>
+                    <button
+                      onClick={() => review(c.id, "RETURNED")}
+                      disabled={busy}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 text-sm font-semibold hover:bg-amber-500/25 transition disabled:opacity-60"
+                    >
+                      <Undo2 className="w-4 h-4" /> Return
+                    </button>
+                  </div>
+                ) : (
+                  status && (
+                    <div className="mt-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${status.cls}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                        Your decision: {status.label}
+                      </span>
+                    </div>
+                  )
+                )}
               </div>
             );
           })}
