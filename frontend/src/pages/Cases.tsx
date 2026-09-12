@@ -26,6 +26,7 @@ const statusMeta: Record<string, { label: string; cls: string; dot: string }> = 
   DRAFT: { label: "Draft", cls: "text-gray-300 bg-white/10", dot: "bg-gray-400" },
   SUBMITTED: { label: "Pending HR", cls: "text-indigo-300 bg-indigo-500/15", dot: "bg-indigo-400" },
   APPROVED: { label: "Approved", cls: "text-emerald-300 bg-emerald-500/10", dot: "bg-emerald-400" },
+  ACKNOWLEDGED: { label: "Acknowledged", cls: "text-teal-300 bg-teal-500/10", dot: "bg-teal-400" },
   CLOSED: { label: "Closed", cls: "text-gray-400 bg-white/5", dot: "bg-gray-500" },
   REJECTED: { label: "Rejected", cls: "text-rose-300 bg-rose-500/15", dot: "bg-rose-400" },
   RETURNED: { label: "Returned", cls: "text-amber-300 bg-amber-500/10", dot: "bg-amber-400" },

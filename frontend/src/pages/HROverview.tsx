@@ -44,7 +44,9 @@ export default function HROverview() {
 
   const pendingCases = cases.filter((c) => c.status === "SUBMITTED");
   const pending = pendingCases.length;
-  const approved = cases.filter((c) => c.status === "APPROVED").length;
+  const approved = cases.filter((c) =>
+    ["APPROVED", "ACKNOWLEDGED", "CLOSED"].includes(c.status),
+  ).length;
   const returned = cases.filter((c) => c.status === "RETURNED").length;
 
   const kpis = [

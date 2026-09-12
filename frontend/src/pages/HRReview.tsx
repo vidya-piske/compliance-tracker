@@ -24,6 +24,7 @@ const actionMeta: Record<string, { label: string; cls: string }> = {
 const statusMeta: Record<string, { label: string; cls: string; dot: string }> = {
   APPROVED: { label: "Approved", cls: "text-emerald-300 bg-emerald-500/10", dot: "bg-emerald-400" },
   RETURNED: { label: "Returned", cls: "text-amber-300 bg-amber-500/10", dot: "bg-amber-400" },
+  ACKNOWLEDGED: { label: "Acknowledged", cls: "text-emerald-300 bg-emerald-500/10", dot: "bg-emerald-400" },
   CLOSED: { label: "Closed", cls: "text-gray-400 bg-white/5", dot: "bg-gray-500" },
 };
 
@@ -108,7 +109,7 @@ export default function HRReview() {
 
   const pending = cases.filter((c) => c.status === "SUBMITTED");
   const reviewed = cases.filter((c) =>
-    ["APPROVED", "RETURNED", "CLOSED"].includes(c.status),
+    ["APPROVED", "RETURNED", "ACKNOWLEDGED", "CLOSED"].includes(c.status),
   );
   const list = tab === "pending" ? pending : reviewed;
 
@@ -233,7 +234,7 @@ export default function HRReview() {
                         className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${status.cls}`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                        Your decision: {status.label}
+                        {status.label}
                       </span>
                     </div>
                   )
