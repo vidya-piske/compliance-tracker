@@ -166,7 +166,6 @@ export default function Cases() {
       <h1 className="mt-2 text-3xl font-bold tracking-tight">Cases</h1>
       <p className="text-gray-400 mt-1">Every incident you've filed, newest first.</p>
 
-      {/* summary strip */}
       <div className="mt-6 grid grid-cols-3 gap-3">
         {stats.map((s) => (
           <div
@@ -355,7 +354,6 @@ export default function Cases() {
               </p>
             )}
 
-            {/* audit timeline */}
             <div className="mt-6">
               <h3 className="text-sm font-semibold text-gray-300 mb-3">History</h3>
               {eventsLoading ? (

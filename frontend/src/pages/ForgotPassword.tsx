@@ -36,7 +36,6 @@ const ForgotPassword = () => {
       subtitle="Enter your email to get a password reset link."
     >
       {result ? (
-        /* Confirmation state — after submitting */
         <div className="space-y-6 text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center">
             <svg

@@ -41,7 +41,6 @@ export default function CreateIncident() {
       .then((data) => setViolations(Array.isArray(data) ? data : []));
   }, []);
 
-  // Live preview: recompute the offense # + action whenever the picks change.
   useEffect(() => {
     if (!employeeId || !violationId) {
       setPreview(null);

@@ -91,7 +91,6 @@ export default function HRReview() {
         setError(data.error || "Could not update the case");
         return;
       }
-      // move it to the reviewed tab by updating its status in place
       setCases((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
     } catch {
       setError("Something went wrong. Try again.");
@@ -130,7 +129,6 @@ export default function HRReview() {
         Approve or return submitted cases, and look back at your decisions.
       </p>
 
-      {/* tabs */}
       <div className="mt-6 flex gap-2">
         <button className={tabClass(tab === "pending")} onClick={() => setTab("pending")}>
           Pending ({pending.length})

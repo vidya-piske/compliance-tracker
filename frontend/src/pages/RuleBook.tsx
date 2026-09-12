@@ -48,7 +48,6 @@ export default function RuleBook() {
       .finally(() => setLoading(false));
   }, []);
 
-  // group the flat rules list into one ladder per violation
   const groups = new Map<string, Rule[]>();
   for (const r of rules) {
     if (!groups.has(r.violation_name)) groups.set(r.violation_name, []);

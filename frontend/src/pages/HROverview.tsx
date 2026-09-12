@@ -87,7 +87,6 @@ export default function HROverview() {
         </Link>
       </div>
 
-      {/* KPI cards */}
       <div className="relative mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k) => {
           const t = tints[k.tint];
@@ -108,7 +107,6 @@ export default function HROverview() {
       </div>
 
       <div className="relative mt-4 grid lg:grid-cols-2 gap-4">
-        {/* Awaiting review */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Awaiting your review</h2>
@@ -132,7 +130,6 @@ export default function HROverview() {
           )}
         </div>
 
-        {/* Cases by violation */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <h2 className="font-semibold">Cases by violation</h2>
           <p className="text-xs text-gray-500 mt-0.5 mb-4">Where incidents cluster</p>
@@ -154,7 +151,6 @@ export default function HROverview() {
         </div>
       </div>
 
-      {/* By manager */}
       <div className="relative mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
         <h2 className="font-semibold">Most active managers</h2>
         <p className="text-xs text-gray-500 mt-0.5 mb-4">Who's filing the most cases</p>
