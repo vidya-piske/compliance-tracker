@@ -10,12 +10,12 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
-const port = 4000;
+const port = process.env.PORT || 4000;
 const { query } = require("./db");
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
   }),
 );
@@ -131,6 +131,7 @@ app.post("/api/login", async (req, res) => {
     res.cookie("session", sessionId, {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -147,7 +148,11 @@ app.post("/api/logout", async (req, res) => {
     if (sessionId) {
       await query("DELETE FROM sessions WHERE id=$1", [sessionId]);
     }
-    res.clearCookie("session");
+    res.clearCookie("session", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
     res.json({ message: "Logged out" });
   } catch (err) {
     console.error(err);
