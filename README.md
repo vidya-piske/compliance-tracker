@@ -4,7 +4,9 @@ A **progressive-discipline / corrective-action tracker** for HR teams. When an e
 
 Built as a full-stack app with **four real roles**, a **rules engine**, and an end-to-end **approval workflow**.
 
-> **Live demo:** _add your deployed URL here_
+> **Live demo:** [compliance-tracker-wheat.vercel.app](https://compliance-tracker-wheat.vercel.app/)
+> (Frontend on Vercel, API on Render, database on Neon. The free API server sleeps when idle, so the first login can take ~30 seconds.)
+>
 > **Demo logins** (password `Demo1234!` for all):
 > | Role | Email |
 > |---|---|
